@@ -1,2 +1,5 @@
-# action-ftp-deploy-then-slack-notification
-FTP deploy on repository push then send success or failure notification to a Slack channel
+This action is a part of [GitHub Actions](https://github.com/objectdotnet/github-actions) library created by [Object.NET](https://object.net/).
+
+# FTP deploy then send Slack notification – GitHub Action
+
+FTP deploy on repository push then send success or failure notification to a Slack channel.
