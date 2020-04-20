@@ -1,0 +1,29 @@
+{
+  "name": "github-actions",
+  "version": "0.0.0",
+  "description": "An FTP publishing GitHub Action that sends notifications to Slack.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/objectdotnet/github-actions.git"
+  },
+  "keywords": [
+    "ftp",
+    "deploy",
+    "github actions",
+    "slack",
+    "notifications"
+  ],
+  "author": "Fabricio Zimmerer Murta",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/objectdotnet/github-actions/issues"
+  },
+  "homepage": "https://github.com/objectdotnet/github-actions#readme",
+  "dependencies": {
+    "@types/node": "^13.11.1"
+  }
+}
