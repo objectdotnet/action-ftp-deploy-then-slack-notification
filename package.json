@@ -24,6 +24,9 @@
   },
   "homepage": "https://github.com/objectdotnet/github-actions#readme",
   "dependencies": {
-    "@types/node": "^13.11.1"
+    "@types/deasync": "^0.1.0",
+    "@types/node": "^13.11.1",
+    "basic-ftp": "^4.5.4",
+    "deasync": "^0.1.20"
   }
 }
