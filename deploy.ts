@@ -54,19 +54,53 @@ if (!slackHook.match(/[a-zA-Z0-9\/]{44}/)) {
 
 console.log("This script shall deploy the files to ftp://" + ftpUser + ":passwd@" + ftpHost + "/" + ftpRoot);
 
+function close_ftp() : boolean {
+  console.log("Closing FTP connection...");
+  let result = ftp.close();
+
+  if (result) {
+    console.log("FTP connection closed.");
+  } else {
+    console.log("Unable to close FTP connection: " + ftp.errors());
+  }
+
+  return result;
+}
+
+process.exit(0); // for now, let's leave FTP alone.
 if (!ftp.connect(ftpHost, ftpUser, ftpPass)) {
   throw new Error("Unable to connect to FTP host: " + ftp.errors());
 } else {
   console.log("Connected to FTP host.");
-  console.log("Closing FTP connection...");
-  if (!ftp.close()) {
-    throw new Error("Unable to close FTP connection: " + ftp.errors());
-  }
-  console.log("FTP connection closed.");
-}
 
-if (fs.existsSync(".")) {
-  console.log("Current directory exists. ;)")
+  console.log("Removing dir: ");
+  if (!ftp.rmdir(ftpRoot)) {
+    console.log("Error removing directory: " + ftp.errors());
+  } else console.log("Directory removed!");
+
+  console.log("Changing to remote root directory...");
+  if (!ftp.chdir(ftpRoot)) {
+    close_ftp()
+    throw new Error("Unable to change to FTP remote deploy directory: " + ftp.errors());
+  }
+
+  console.log("Fetching git-ftp hash...")
+  let git_ftp_handle = ftp.get_instr(".git-ftp.log");
+  let last_commit_hash = "";
+  if (git_ftp_handle.success) {
+    if (git_ftp_handle.contents.length != 41 &&
+       !git_ftp_handle.contents.match(/^[a-f0-9]{41}$/)) {
+      console.log("Got inconsistent commit hash (length: " + git_ftp_handle.contents.length + "). Ignoring it.");
+    } else {
+      last_commit_hash = git_ftp_handle.contents.trim();
+      console.log("Got commit hash: " + last_commit_hash);
+    }
+  } else {
+    console.log("Error getting file: " + ftp.errors());
+  }
+
+  console.log("Script finished without fatal issues.");
+  close_ftp();
 }
 
 ftp.close(); // just to be sure, else app will lock down.
