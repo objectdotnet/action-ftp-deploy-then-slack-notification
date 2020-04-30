@@ -1,17 +1,51 @@
 import * as bf from "basic-ftp";
 import * as dasync from "deasync";
+import { Writable } from "stream";
 
 let errorMessages: string[] = [];
 let ftp_client = new bf.Client();
 let ftp_connected = false;
+
+interface IFileGetStringResult {
+  success: boolean,
+  contents: string
+}
+
+function sync_call(what : Promise<any>) : boolean {
+  let finished = false;
+  let succeeded = false;
+  what.then(() => { succeeded = true })
+    .catch(log_err)
+    .finally(() => { finished = true });
+
+  dasync.loopWhile(() => !finished);
+
+  return succeeded;
+}
+
+function sync_call_numeric(what : Promise<Number>) : Number {
+  let finished = false;
+  let result : Number = -1;
+  what.then((value) => { result = value })
+    .catch(log_err)
+    .finally(() => { finished = true });
+
+  dasync.loopWhile(() => !finished);
+
+  return result;
+}
 
 function log_err(message: string) {
   errorMessages.push(message);
 }
 
 function chdir(path: string) : boolean {
-  log_err("chdir() is not implemented.");
-  return false;
+  if (!connected()) {
+    log_err("Attempt to chdir() without active FTP connection.");
+    return false;
+  }
+
+  return sync_call(ftp_client.cd(path));
 }
 
 function close() : boolean {
@@ -22,19 +56,66 @@ function connect(host: string, user = "anonymous", pass="anonymous@email.address
   return ftp_access(host, user, pass);
 }
 
+function connected() : boolean {
+  return !ftp_client.closed;
+}
+
 function dele(file: string) : boolean {
   log_err("");
   return false;
 }
 
-function get(file: string) : string {
-  log_err("get() is not implemented.");
-  return "";
+function get(remote_file: string, local_file : string) : boolean {
+  return sync_call(
+    ftp_client.downloadTo(local_file, remote_file)
+  );
+}
+
+function get_instr(remote_file: string) : IFileGetStringResult {
+  let partial_contents = "";
+  let data = new Writable({
+    write(chunk, encoding, next) {
+      partial_contents += chunk.toString();
+      next();
+    }
+  });
+
+  // TODO: add a "guard" for too big files (as whole contents will be stored in memory)
+  let size = sync_call_numeric(
+    ftp_client.size(remote_file)
+  )
+
+  if (size < 0) {
+    log_err("Unable to fetch remote file '" + remote_file + "': " + errorMessages.pop());
+    return { success: false, contents: ""};
+  } else if (size > 134217728) {
+    log_err("File size too big to store in string: >= 128MB.");
+    return { success: false, contents: "" };
+  }
+
+  let result = sync_call(
+    ftp_client.downloadTo(data, remote_file)
+  );
+
+  if (!data.writableEnded) console.log("Data write not ended!");
+  if (!data.writableFinished) console.log("Data write not finished!");
+
+  return {
+    success: result,
+    contents: result ? partial_contents : ""
+   };
 }
 
 function mkdir(path: string) : boolean {
-  log_err("mkdir() is not implemented.");
-  return false;
+  return sync_call(
+    ftp_client.send("MKD \"" + path + "\"")
+  );
+}
+
+function rmdir(path: string) : boolean {
+  return sync_call(
+    ftp_client.send("RMD \"" + path + "\"")
+  );
 }
 
 function send(file: string) : boolean {
@@ -42,27 +123,28 @@ function send(file: string) : boolean {
   return false;
 }
 
-function errors() : string {
-  return errorMessages.join("\n");
+function errors(clear = true) : string {
+  let errorList = errorMessages.join("\n");
+
+  if (clear) errorMessages = [];
+
+  return errorList;
 }
 
 function ftp_access(host: string, user: string, pass: string) : boolean {
-  let result = false;
-  let finished = false;
+  if (connected()) {
+    log_err("Attempt to connect() while already connected. Please close current connection first.");
+    return false;
+  }
 
-  ftp_client.access({
-    host: host,
-    user: user,
-    password: pass,
-    secure: false
-  })
-    .then(() => { result = true })
-    .catch(error => { errorMessages.push(error) })
-    .finally(function () { finished = true });
-
-  dasync.loopWhile(() => !finished);
-
-  return result;
+  return sync_call(
+    ftp_client.access({
+      host: host,
+      user: user,
+      password: pass,
+      secure: false
+    })
+  );
 }
 
 function ftp_close() : boolean {
@@ -75,4 +157,4 @@ function ftp_close() : boolean {
   return true;
 }
 
-export { chdir, close, connect, dele, errors, get, mkdir, send }
+export { chdir, close, connect, dele, errors, get, get_instr, mkdir, rmdir, send }
