@@ -1,3 +1,7 @@
+import * as fs from "fs";
+import * as ftp from "./ftp";
+import * as util from "./utils";
+
 let params = process.argv.slice(2);
 
 let repoRoot = params[0];
@@ -7,27 +11,62 @@ let ftpUser = params[3];
 let ftpPass = params[4];
 let slackHook = params[5];
 
-if (repoRoot.length < 2) {
+if (util.empty(repoRoot, 2)) {
   throw new Error("Local repository root directory not specified.")
-} else if (repoRoot.startsWith("/")) {
-  repoRoot = repoRoot.substring(1); // drop first character of local path if it starts with a slash.
 }
-// TODO: check if root folder exists
-// else if (File.exists)
-if (ftpHost.length < 2) {
+
+repoRoot = util.trimSlashes(repoRoot);
+
+if (repoRoot.match(/^(|[^\/]+\/)\.\.(|\/[^\/]+)$/)) {
+  throw new Error("Arbitrary relative paths not allowed (\"/../\") in: " + repoRoot)
+}
+
+if (! fs.existsSync(repoRoot)) {
+  throw new Error("Unable to locate local root directory to deploy: " + repoRoot)
+}
+
+if (util.empty(ftpHost, 2)) {
   throw new Error("FTP host address not specified.")
+} if (ftpHost.match(/[^a-zA-Z0-9\._-]+$/)) {
+  throw new Error("FTP host has invalid characters: " + ftpHost);
 }
-if (ftpRoot.length < 2) {
+
+if (util.empty(ftpRoot, 2)) {
   throw new Error("FTP root directory not specified.")
 }
-if (ftpUser.length < 2) {
+ftpRoot = util.trimSlashes(ftpRoot);
+
+if (util.empty(ftpUser)) {
   throw new Error("FTP username not specified.")
 }
-if (ftpPass.length < 2) {
+
+if (util.empty(ftpPass)) {
   throw new Error("FTP password not specified.")
 }
-if (slackHook.length < 2) {
-  throw new Error("Slack web hook hash not specified.")
+
+if (util.empty(slackHook, 2)) {
+  throw new Error("Slack webhook hash not specified.")
+}
+
+if (!slackHook.match(/[a-zA-Z0-9\/]{44}/)) {
+  throw new Error("Slack webhook hash is in unsupported format.")
 }
 
 console.log("This script shall deploy the files to ftp://" + ftpUser + ":passwd@" + ftpHost + "/" + ftpRoot);
+
+if (!ftp.connect(ftpHost, ftpUser, ftpPass)) {
+  throw new Error("Unable to connect to FTP host: " + ftp.errors());
+} else {
+  console.log("Connected to FTP host.");
+  console.log("Closing FTP connection...");
+  if (!ftp.close()) {
+    throw new Error("Unable to close FTP connection: " + ftp.errors());
+  }
+  console.log("FTP connection closed.");
+}
+
+if (fs.existsSync(".")) {
+  console.log("Current directory exists. ;)")
+}
+
+ftp.close(); // just to be sure, else app will lock down.
