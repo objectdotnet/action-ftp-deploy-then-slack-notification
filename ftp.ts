@@ -2,7 +2,7 @@ import * as bf from "basic-ftp";
 import * as dasync from "deasync";
 
 let errorMessages: string[] = [];
-let ftp_client : bf.Client;
+let ftp_client = new bf.Client();
 let ftp_connected = false;
 
 function log_err(message: string) {
@@ -18,7 +18,7 @@ function close() : boolean {
   return ftp_close();
 }
 
-function connect(host: string, user = "anonymous", pass="hello@object.net") : boolean {
+function connect(host: string, user = "anonymous", pass="anonymous@email.address") : boolean {
   return ftp_access(host, user, pass);
 }
 
@@ -47,7 +47,6 @@ function errors() : string {
 }
 
 function ftp_access(host: string, user: string, pass: string) : boolean {
-  ftp_init();
   let result = false;
   let finished = false;
 
@@ -61,9 +60,7 @@ function ftp_access(host: string, user: string, pass: string) : boolean {
     .catch(error => { errorMessages.push(error) })
     .finally(function () { finished = true });
 
-  console.log("Connecting...");
   dasync.loopWhile(() => !finished);
-  console.log("Synchronously connected!");
 
   return result;
 }
@@ -78,7 +75,4 @@ function ftp_close() : boolean {
   return true;
 }
 
-function ftp_init() {
-  if (ftp_client == null) ftp_client = new bf.Client();
-}
 export { chdir, close, connect, dele, errors, get, mkdir, send }
