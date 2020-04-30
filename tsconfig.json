@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
     "strictNullChecks": true,
-    "allowJs": false
+    "allowJs": false,
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "types": [
+      "node"
+    ]
   }
 }
