@@ -23,5 +23,5 @@ jobs:
       run: |
         function error() { >&2 echo "*** Error: ${@}"; exit 1; }
         npm install || error "unable to install/refresh NPM packages."
-        tsc deploy.ts || error "unable to build 'deploy.ts'."
+        tsc || error "unable to build 'deploy.ts'."
         node deploy.js "${{ secrets.deploy_root }}" "${{ secrets.deploy_ftp_host }}" "${{ secrets.deploy_ftp_root }}" "${{ secrets.deploy_ftp_user }}" "${{ secrets.deploy_ftp_pass }}" "${{ secrets.slack_webhook_hash }}" || error "The 'deploy.js' script returned with error."
