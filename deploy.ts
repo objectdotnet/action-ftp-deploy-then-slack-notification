@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as ftp from "./ftp";
+import * as git from "./git";
 import * as util from "./utils";
 
 let params = process.argv.slice(2);
@@ -61,27 +62,48 @@ function close_ftp() : boolean {
   if (result) {
     console.log("FTP connection closed.");
   } else {
-    console.log("Unable to close FTP connection: " + ftp.errors());
+    console.log("Unable to close FTP connection: " + util.errors());
   }
 
   return result;
 }
 
+let git_head = git.head();
+if (git_head.length < 1) {
+  console.log("Unable to fetch git HEAD: " + util.errors());
+} else {
+  console.log("Current git HEAD: " + git_head);
+}
+
+let refhash = "9533bd09bb1f3aed1e70a9674ad7e2e818a890a1";
+console.log("Is hash [" + refhash + "] reachable?");
+
+let hashlog = git.log_until(refhash);
+if (hashlog.failed) {
+  console.log("Failed to fetch history: " + util.errors());
+} else if (hashlog.found) {
+  console.log("Yes, found. At " + hashlog.distance + " commits away from HEAD.");
+  console.log("Its log message is: " + hashlog.history[hashlog.distance - 1].subject);
+} else {
+  console.log("It is not in this HEAD's history.");
+}
+
 process.exit(0); // for now, let's leave FTP alone.
+
 if (!ftp.connect(ftpHost, ftpUser, ftpPass)) {
-  throw new Error("Unable to connect to FTP host: " + ftp.errors());
+  throw new Error("Unable to connect to FTP host: " + util.errors());
 } else {
   console.log("Connected to FTP host.");
 
   console.log("Removing dir: ");
   if (!ftp.rmdir(ftpRoot)) {
-    console.log("Error removing directory: " + ftp.errors());
+    console.log("Error removing directory: " + util.errors());
   } else console.log("Directory removed!");
 
   console.log("Changing to remote root directory...");
   if (!ftp.chdir(ftpRoot)) {
     close_ftp()
-    throw new Error("Unable to change to FTP remote deploy directory: " + ftp.errors());
+    throw new Error("Unable to change to FTP remote deploy directory: " + util.errors());
   }
 
   console.log("Fetching git-ftp hash...")
@@ -96,7 +118,7 @@ if (!ftp.connect(ftpHost, ftpUser, ftpPass)) {
       console.log("Got commit hash: " + last_commit_hash);
     }
   } else {
-    console.log("Error getting file: " + ftp.errors());
+    console.log("Error getting file: " + util.errors());
   }
 
   console.log("Script finished without fatal issues.");
