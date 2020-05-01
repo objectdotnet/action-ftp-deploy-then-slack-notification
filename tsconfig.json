@@ -4,6 +4,8 @@
     "allowJs": false,
     "alwaysStrict": true,
     "noImplicitAny": true,
+    "target": "ES2019",
+    "module": "CommonJS",
     "types": [
       "node"
     ]
