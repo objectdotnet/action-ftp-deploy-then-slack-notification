@@ -1,8 +1,7 @@
 import * as bf from "basic-ftp";
-import * as dasync from "deasync";
 import { Writable } from "stream";
+import * as util from "./utils";
 
-let errorMessages: string[] = [];
 let ftp_client = new bf.Client();
 let ftp_connected = false;
 
@@ -11,41 +10,13 @@ interface IFileGetStringResult {
   contents: string
 }
 
-function sync_call(what : Promise<any>) : boolean {
-  let finished = false;
-  let succeeded = false;
-  what.then(() => { succeeded = true })
-    .catch(log_err)
-    .finally(() => { finished = true });
-
-  dasync.loopWhile(() => !finished);
-
-  return succeeded;
-}
-
-function sync_call_numeric(what : Promise<Number>) : Number {
-  let finished = false;
-  let result : Number = -1;
-  what.then((value) => { result = value })
-    .catch(log_err)
-    .finally(() => { finished = true });
-
-  dasync.loopWhile(() => !finished);
-
-  return result;
-}
-
-function log_err(message: string) {
-  errorMessages.push(message);
-}
-
 function chdir(path: string) : boolean {
   if (!connected()) {
-    log_err("Attempt to chdir() without active FTP connection.");
+    util.log_err("Attempt to chdir() without active FTP connection.");
     return false;
   }
 
-  return sync_call(ftp_client.cd(path));
+  return util.sync_call(ftp_client.cd(path));
 }
 
 function close() : boolean {
@@ -61,12 +32,12 @@ function connected() : boolean {
 }
 
 function dele(file: string) : boolean {
-  log_err("");
+  util.log_err("dele() is not implemented.");
   return false;
 }
 
 function get(remote_file: string, local_file : string) : boolean {
-  return sync_call(
+  return util.sync_call(
     ftp_client.downloadTo(local_file, remote_file)
   );
 }
@@ -81,19 +52,19 @@ function get_instr(remote_file: string) : IFileGetStringResult {
   });
 
   // TODO: add a "guard" for too big files (as whole contents will be stored in memory)
-  let size = sync_call_numeric(
+  let size = util.sync_call_numeric(
     ftp_client.size(remote_file)
   )
 
   if (size < 0) {
-    log_err("Unable to fetch remote file '" + remote_file + "': " + errorMessages.pop());
+    util.log_err("Unable to fetch remote file '" + remote_file + "': " + util.pop_last_error());
     return { success: false, contents: ""};
   } else if (size > 134217728) {
-    log_err("File size too big to store in string: >= 128MB.");
+    util.log_err("File size too big to store in string: >= 128MB.");
     return { success: false, contents: "" };
   }
 
-  let result = sync_call(
+  let result = util.sync_call(
     ftp_client.downloadTo(data, remote_file)
   );
 
@@ -107,37 +78,29 @@ function get_instr(remote_file: string) : IFileGetStringResult {
 }
 
 function mkdir(path: string) : boolean {
-  return sync_call(
+  return util.sync_call(
     ftp_client.send("MKD \"" + path + "\"")
   );
 }
 
 function rmdir(path: string) : boolean {
-  return sync_call(
+  return util.sync_call(
     ftp_client.send("RMD \"" + path + "\"")
   );
 }
 
 function send(file: string) : boolean {
-  log_err("send() is not implemented.");
+  util.log_err("send() is not implemented.");
   return false;
-}
-
-function errors(clear = true) : string {
-  let errorList = errorMessages.join("\n");
-
-  if (clear) errorMessages = [];
-
-  return errorList;
 }
 
 function ftp_access(host: string, user: string, pass: string) : boolean {
   if (connected()) {
-    log_err("Attempt to connect() while already connected. Please close current connection first.");
+    util.log_err("Attempt to connect() while already connected. Please close current connection first.");
     return false;
   }
 
-  return sync_call(
+  return util.sync_call(
     ftp_client.access({
       host: host,
       user: user,
@@ -153,8 +116,7 @@ function ftp_close() : boolean {
   // FIXME: when should this return false at all?
   ftp_client.close();
 
-  dasync.loopWhile(() => !ftp_client.closed);
   return true;
 }
 
-export { chdir, close, connect, dele, errors, get, get_instr, mkdir, rmdir, send }
+export { chdir, close, connect, dele, get, get_instr, mkdir, rmdir, send }
