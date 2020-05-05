@@ -1,6 +1,5 @@
 import * as fs from "fs";
-import * as ftp from "./ftp";
-import * as git from "./git";
+import * as slack from "./slack";
 import * as util from "./utils";
 
 let params = process.argv.slice(2);
@@ -11,6 +10,24 @@ let ftpRoot = params[2];
 let ftpUser = params[3];
 let ftpPass = params[4];
 let slackHook = params[5];
+
+let github_action = {
+  workflow: process.env.GITHUB_WORKFLOW,
+  runId: process.env.GITHUB_RUN_ID,
+  runCount: process.env.GITHUB_RUN_NUMBER,
+  starter: process.env.GITHUB_ACTOR,
+  repo: process.env.GITHUB_REPOSITORY,
+  branch: process.env.GITHUB_REF
+}
+
+if (process.env.CI === undefined) {
+  github_action.workflow = "(unknown)";
+  github_action.runId = "-1";
+  github_action.runCount = "-1";
+  github_action.starter = "nobody";
+  github_action.repo = "(local run)";
+  github_action.branch = "working directory";
+}
 
 if (util.empty(repoRoot, 2)) {
   throw new Error("Local repository root directory not specified.")
@@ -53,76 +70,16 @@ if (!slackHook.match(/[a-zA-Z0-9\/]{44}/)) {
   throw new Error("Slack webhook hash is in unsupported format.")
 }
 
-console.log("This script shall deploy the files to ftp://" + ftpUser + ":passwd@" + ftpHost + "/" + ftpRoot);
+let sp : slack.ISlackMessengerParams = {
+  from: "GitHub Deploy Service",
+  to: "U03LFAG3T"
+};
 
-function close_ftp() : boolean {
-  console.log("Closing FTP connection...");
-  let result = ftp.close();
+let msger = new slack.Messenger(sp, slackHook);
 
-  if (result) {
-    console.log("FTP connection closed.");
-  } else {
-    console.log("Unable to close FTP connection: " + util.errors());
-  }
-
-  return result;
-}
-
-let git_head = git.head();
-if (git_head.length < 1) {
-  console.log("Unable to fetch git HEAD: " + util.errors());
+if (msger.send("Deployment #" + github_action.runCount + " for branch \"" + github_action.branch + "\" <https://github.com/" + github_action.repo + "|" + github_action.repo + ">.")) {
+  console.log("Message sent.");
 } else {
-  console.log("Current git HEAD: " + git_head);
+  console.log("Message not sent.");
 }
 
-let refhash = "9533bd09bb1f3aed1e70a9674ad7e2e818a890a1";
-console.log("Is hash [" + refhash + "] reachable?");
-
-let hashlog = git.log_until(refhash);
-if (hashlog.failed) {
-  console.log("Failed to fetch history: " + util.errors());
-} else if (hashlog.found) {
-  console.log("Yes, found. At " + hashlog.distance + " commits away from HEAD.");
-  console.log("Its log message is: " + hashlog.history[hashlog.distance - 1].subject);
-} else {
-  console.log("It is not in this HEAD's history.");
-}
-
-process.exit(0); // for now, let's leave FTP alone.
-
-if (!ftp.connect(ftpHost, ftpUser, ftpPass)) {
-  throw new Error("Unable to connect to FTP host: " + util.errors());
-} else {
-  console.log("Connected to FTP host.");
-
-  console.log("Removing dir: ");
-  if (!ftp.rmdir(ftpRoot)) {
-    console.log("Error removing directory: " + util.errors());
-  } else console.log("Directory removed!");
-
-  console.log("Changing to remote root directory...");
-  if (!ftp.chdir(ftpRoot)) {
-    close_ftp()
-    throw new Error("Unable to change to FTP remote deploy directory: " + util.errors());
-  }
-
-  console.log("Fetching git-ftp hash...")
-  let git_ftp_handle = ftp.get_instr(".git-ftp.log");
-  let last_commit_hash = "";
-  if (git_ftp_handle.success) {
-    if (git_ftp_handle.contents.length != 41 &&
-       !git_ftp_handle.contents.match(/^[a-f0-9]{41}$/)) {
-      console.log("Got inconsistent commit hash (length: " + git_ftp_handle.contents.length + "). Ignoring it.");
-    } else {
-      last_commit_hash = git_ftp_handle.contents.trim();
-      console.log("Got commit hash: " + last_commit_hash);
-    }
-  } else {
-    console.log("Error getting file: " + util.errors());
-  }
-
-  console.log("Script finished without fatal issues.");
-  close_ftp();
-}
-
-ftp.close(); // just to be sure, else app will lock down.
