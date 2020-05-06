@@ -1,10 +1,10 @@
-import * as dasync from "deasync";
 import * as fs from "fs";
+import { spawnSync } from "child_process";
 
 let errorMessages: string[] = [];
 
 function empty(what : string, minlen = 1) : boolean {
-  return what == undefined || what == null || what == "" || what.length < minlen;
+  return what.length < minlen;
 }
 
 function errors(clear = true) : string {
@@ -23,28 +23,23 @@ function pop_last_error() {
   return errorMessages.pop();
 }
 
-function sync_call(what : Promise<any>) : boolean {
-  let finished = false;
-  let succeeded = false;
-  what.then(() => { succeeded = true })
-    .catch(log_err)
-    .finally(() => { finished = true });
+function runcmd(command: string, args : string[]) : boolean {
+  let result = spawnSync(command, args);
 
-  dasync.loopWhile(() => !finished);
-
-  return succeeded;
-}
-
-function sync_call_numeric(what : Promise<Number>) : Number {
-  let finished = false;
-  let result : Number = -1;
-  what.then((value) => { result = value })
-    .catch(log_err)
-    .finally(() => { finished = true });
-
-  dasync.loopWhile(() => !finished);
-
-  return result;
+  if (result.status == null) {
+    log_err("Command interrupted by signal: " + result.signal);
+    return false;
+  } else if (result.status != 0) {
+    log_err(
+      "Command returned non-zero exit status: exit(" + result.status + ")\n" +
+      "- Command: " + command + "\n" + // (could expose sensitive info) // " " + args.join(" ") + "\n" +
+      "- Command output (stdout): \n---\n" + result.stdout + "\n---\n" +
+      "- Command output (stderr): \n---\n" + result.stderr + "\n---\n"
+    );
+    return false;
+  } else {
+    return true;
+  }
 }
 
 function trimSlashes(what: string) {
@@ -136,4 +131,4 @@ class FileReader {
   }
 }
 
-export { empty, errors, FileReader, log_err, pop_last_error, sync_call, sync_call_numeric, trimSlashes };
+export { empty, errors, FileReader, log_err, pop_last_error, runcmd, trimSlashes };

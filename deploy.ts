@@ -1,85 +1,132 @@
 import * as fs from "fs";
+import * as gac from "@actions/core";
+import * as gag from "@actions/github";
 import * as slack from "./slack";
 import * as util from "./utils";
 
 let params = process.argv.slice(2);
 
-let repoRoot = params[0];
-let ftpHost = params[1];
-let ftpRoot = params[2];
-let ftpUser = params[3];
-let ftpPass = params[4];
-let slackHook = params[5];
-
-let github_action = {
-  workflow: process.env.GITHUB_WORKFLOW,
-  runId: process.env.GITHUB_RUN_ID,
-  runCount: process.env.GITHUB_RUN_NUMBER,
-  starter: process.env.GITHUB_ACTOR,
-  repo: process.env.GITHUB_REPOSITORY,
-  branch: process.env.GITHUB_REF
-}
+let repoRoot = gac.getInput("repo-root");
+let ftpHost = gac.getInput("ftp-host");
+let ftpRoot = gac.getInput("ftp-root");
+let ftpUser = gac.getInput("ftp-user");
+let ftpPass = gac.getInput("ftp-pass");
+let slackHook = gac.getInput("slack-webhook");
+let slackChan = gac.getInput("slack-to");
+let slackNick = gac.getInput("slack-nick");
+let slackIcon = gac.getInput("slack-icon");
 
 if (process.env.CI === undefined) {
-  github_action.workflow = "(unknown)";
-  github_action.runId = "-1";
-  github_action.runCount = "-1";
-  github_action.starter = "nobody";
-  github_action.repo = "(local run)";
-  github_action.branch = "working directory";
+  console.log("- Script not running from GitHub Actions environment. Stubbing out info.");
 }
 
+let github_action = {
+  workflow: gag.context.workflow,
+  runId: process.env.GITHUB_RUN_ID ?? "-1",
+  runCount: process.env.GITHUB_RUN_NUMBER ?? "-1",
+  starter: process.env.GITHUB_ACTOR ?? "nobody",
+  repo: gag.context.repo.repo,
+  branch: gag.context.ref
+};
+
+function fail(message : string, failStat : number = 1) {
+  gac.setFailed(message);
+  console.error("Aborting: " + message);
+  process.exit(failStat);
+}
+
+console.log("- Checking provided arguments.");
 if (util.empty(repoRoot, 2)) {
-  throw new Error("Local repository root directory not specified.")
+  fail("Local repository root directory not specified.")
 }
 
 repoRoot = util.trimSlashes(repoRoot);
 
 if (repoRoot.match(/^(|[^\/]+\/)\.\.(|\/[^\/]+)$/)) {
-  throw new Error("Arbitrary relative paths not allowed (\"/../\") in: " + repoRoot)
+  fail("Arbitrary relative paths not allowed (\"/../\") in: " + repoRoot)
 }
 
 if (! fs.existsSync(repoRoot)) {
-  throw new Error("Unable to locate local root directory to deploy: " + repoRoot)
+  fail("Unable to locate local root directory to deploy: " + repoRoot)
 }
 
 if (util.empty(ftpHost, 2)) {
-  throw new Error("FTP host address not specified.")
+  fail("FTP host address not specified.")
 } if (ftpHost.match(/[^a-zA-Z0-9\._-]+$/)) {
-  throw new Error("FTP host has invalid characters: " + ftpHost);
+  fail("FTP host has invalid characters: " + ftpHost);
 }
 
 if (util.empty(ftpRoot, 2)) {
-  throw new Error("FTP root directory not specified.")
+  fail("FTP root directory not specified.")
 }
 ftpRoot = util.trimSlashes(ftpRoot);
 
 if (util.empty(ftpUser)) {
-  throw new Error("FTP username not specified.")
+  fail("FTP username not specified.")
 }
 
 if (util.empty(ftpPass)) {
-  throw new Error("FTP password not specified.")
+  fail("FTP password not specified.")
 }
 
 if (util.empty(slackHook, 2)) {
-  throw new Error("Slack webhook hash not specified.")
+  fail("Slack webhook hash not specified.")
 }
 
 if (!slackHook.match(/[a-zA-Z0-9\/]{44}/)) {
-  throw new Error("Slack webhook hash is in unsupported format.")
+  fail("Slack webhook hash is in unsupported format.")
+}
+
+if (util.empty(slackChan)) {
+  fail("Slack target channel name not specified.");
+}
+
+if (util.empty(slackNick)) {
+  slackNick = "GitHub Deploy Service";
+}
+
+if (util.empty(slackIcon)) {
+  slackIcon = "";
 }
 
 let sp : slack.ISlackMessengerParams = {
-  from: "GitHub Deploy Service",
-  to: "U03LFAG3T"
+  from: slackNick,
+  to: slackChan,
+  portrait_emoji: slackIcon
 };
 
 let msger = new slack.Messenger(sp, slackHook);
 
-if (msger.send("Deployment #" + github_action.runCount + " for branch \"" + github_action.branch + "\" <https://github.com/" + github_action.repo + "|" + github_action.repo + ">.")) {
-  console.log("Message sent.");
-} else {
-  console.log("Message not sent.");
+async function main() {
+  let noticePrefix = "Deployment #" + github_action.runCount + " for branch \"" + github_action.branch + "\" " +
+    slack.ghLink(github_action.repo);
+  console.log("Sending Slack notification: " + noticePrefix + " started.");
+  if (!await msger.send(noticePrefix + " started.")) {
+    console.log("Slack Notification sent.");
+  } else {
+   fail("Error trying to send slack message: " + util.errors());
+  }
+
+  let cmd_success = util.runcmd("git", [
+    "ftp", "push", "--force", "--auto-init", "--verbose",
+    "--syncroot", repoRoot,
+    "--user", ftpUser,
+    "--passwd", ftpPass,
+    ftpHost
+  ]);
+
+  if (cmd_success) {
+    console.log("Sending Slack notification: " + noticePrefix + " completed successfully.");
+    if (await msger.send(noticePrefix + " completed successfully.")) {
+      console.log("Slack Notification sent.");
+    } else {
+      // do not fail the whole deploy process if just the notification couldn't
+      // be sent after the process completed.
+      console.error("- WARNING: completion notice couldn't be sent to slack: " + util.pop_last_error());
+    }
+  } else {
+    fail("git-ftp command did not complete successfully: " + util.errors());
+  }
 }
 
+main();

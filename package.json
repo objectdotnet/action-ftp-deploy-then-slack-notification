@@ -24,9 +24,10 @@
   },
   "homepage": "https://github.com/objectdotnet/github-actions#readme",
   "dependencies": {
+    "@actions/core": "^1.2.4",
+    "@actions/github": "^2.1.1",
     "@actions/http-client": "^1.0.8",
-    "@types/deasync": "^0.1.0",
     "@types/node": "^13.11.1",
-    "deasync": "^0.1.20"
+    "@zeit/ncc": "^0.22.1"
   }
 }

@@ -1,12 +1,20 @@
 import * as http from "@actions/http-client";
 import * as util from "./utils";
-import { Http2ServerResponse } from "http2";
 
 let slackhost = "https://hooks.slack.com/services";
 
 interface ISlackMessengerParams {
   from : string;
   to : string;
+  portrait_emoji : string
+}
+
+function ghLink(repo : string) : string {
+  if (repo.match(/f/) !== null) {
+    return "<https://github.com/" + repo + "|" + repo + ">";
+  } else {
+    return repo;
+  }
 }
 
 function invalidWebHook(hash : string) : boolean {
@@ -17,6 +25,7 @@ class Messenger {
   #webhook = "";
   #username = "";
   #channel = "";
+  #portrait = ":pager:";
   #client : http.HttpClient;
 
   constructor(params : ISlackMessengerParams, webHook : string) {
@@ -27,24 +36,37 @@ class Messenger {
     this.#username = params.from;
     this.#channel = params.to;
 
+    if (!util.empty(params.portrait_emoji, 3))
+      this.#portrait = params.portrait_emoji;
+
     this.#client = new http.HttpClient("ftp-and-slack-notify HTTP client / 1.0")
   };
 
-  send(message : string, from : string = this.#username, to : string = this.#channel) : boolean {
+  async send(message : string, from : string = this.#username, to : string = this.#channel) : Promise<boolean> {
     if (invalidWebHook(this.#webhook)) {
       util.log_err("Invalid Slack WebHook provided to SlackMSG module.");
       return false;
     }
 
-    // TODO: handle 404, 500 and other errors
-    return util.sync_call(
-      this.#client.postJson(slackhost + "/" + this.#webhook, {
+    try {
+      let response = await this.#client.postJson(slackhost + "/" + this.#webhook, {
         username: from,
         channel: to,
         text: message,
-        icon_emoji: ":pager:"
-      })
-    );
+        icon_emoji: this.#portrait
+      });
+
+      if (response.statusCode != 200) {
+        util.log_err("Slack message HTTP submission returned status " + response.statusCode + ".\n" +
+          "HTTP response:\n" + response.result);
+        return false;
+      }
+    } catch (err) {
+      util.log_err(err);
+      return false;
+    }
+
+    return true;
   }
 
   setWebHook(hash : string) : boolean {
@@ -58,4 +80,4 @@ class Messenger {
   }
 }
 
-export { ISlackMessengerParams, Messenger }
+export { ghLink, ISlackMessengerParams, Messenger }
