@@ -62,7 +62,7 @@ class Messenger {
         return false;
       }
     } catch (err) {
-      util.log_err(err);
+      util.log_err("Slack message HTTP submission attempt resulted in error: " + err);
       return false;
     }
 
