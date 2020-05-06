@@ -102,63 +102,86 @@ if (util.empty(slackIcon)) {
 let sp : slack.ISlackMessengerParams = {
   from: slackNick,
   to: slackChan,
-  portrait_emoji: slackIcon
+  portraitEmoji: slackIcon,
+  noticePrefix: slack.ghDeployLink(ga.repo_owner, ga.repo, ga.runId, ga.runCount) +
+    " for " +
+    slack.ghBranchLink(ga.repo_owner, ga.repo, ga.branch.split(/\//)[2]) + " at " +
+    slack.ghRepoLink(ga.repo_owner, ga.repo)
 };
 
 let msger = new slack.Messenger(sp, slackHook);
 
-async function main() {
-  let noticePrefix =
-    slack.ghDeployLink(ga.repo_owner, ga.repo, ga.runId, ga.runCount) +
-    "for " +
-    slack.ghBranchLink(ga.repo_owner, ga.repo, ga.branch.split(/\//)[2]) + " at " +
-    slack.ghRepoLink(ga.repo_owner, ga.repo);
-  console.log("Sending Slack notification: " + noticePrefix + " started.");
-  if (await msger.send(noticePrefix + " started.")) {
-    console.log("Slack Notification sent.");
-  } else {
-   fail("Error trying to send slack message: " + util.errors());
-  }
-
-  let cmd_success = util.runcmd("git", [
-    "ftp", "push", "--force", "--verbose",
+function runGitFtp() : boolean {
+  return util.runcmd("git", [
+    "ftp", "push", "--verbose",
     "--syncroot", repoRoot,
     "--remote-root", ftpRoot,
     "--user", ftpUser,
     "--passwd", ftpPass,
     ftpProto + "://" + ftpHost
   ]);
+}
+
+function noticeHandle(result : boolean, fatal : boolean, action : string = "") {
+  if (action.length > 0) action = action + " ";
+
+  if (result) {
+    console.log("Slack " + action + "notification sent.");
+  } else {
+    if (fatal) {
+      fail("Unable to send " + action + "slack message: " + util.errors());
+    } else {
+      console.error("- WARNING: Unable to send " + action + "slack message: " + util.pop_last_error());
+    }
+  }
+}
+
+async function main() {
+  noticeHandle(await msger.notice("started"), true, "start");
+
+  let cmd_success = runGitFtp();
 
   if (cmd_success) {
-    console.log("Sending Slack notification: " + noticePrefix + " completed successfully.");
-    if (await msger.send(noticePrefix + " completed successfully.")) {
-      console.log("Slack Notification sent.");
-    } else {
-      // do not fail the whole deploy process if just the notification couldn't
-      // be sent after the process completed.
-      console.error("- WARNING: completion notice couldn't be sent to slack: " + util.pop_last_error());
-    }
+    noticeHandle(await msger.notice("completed successfully."), false, "completion");
   } else {
     let error_details = util.errors(false);
 
     if (!util.empty(error_details)) {
-      // Slack has a message length limit of around 12,000 characters.
-      if (error_details.length > 11000) {
-        error_details = error_details.substr(0, 11000) + "\n\n(output too long -- cropped)\n";
+      // Check if all we need to do is init and retry
+      if (error_details.match(/curl: \([0-9]+\) Server denied you to change to the given directory/) !== null) {
+        console.log("Attempting to initialize FTP folder structure.");
+        let notice_success = await msger.errorNotice("FTP host needs intialization. Trying to initialize..", error_details);
+        noticeHandle(notice_success, false, "FTP folder structure initialization");
+        cmd_success = util.runcmd("git", [
+          "ftp", "init", "--verbose",
+          "--remote-root", ftpRoot,
+          "--user", ftpUser,
+          "--passwd", ftpPass,
+          ftpProto + "://" + ftpHost
+        ]);
+
+        if (cmd_success) {
+          notice_success = await msger.notice("Initialization successful, retrying sync..");
+          noticeHandle(notice_success, false, "initialization success");
+
+          cmd_success = runGitFtp();
+
+          if (cmd_success) {
+            notice_success = await msger.notice("completed successfully after FTP initialization.");
+            noticeHandle(notice_success, false, "completion");
+          } else {
+            noticeHandle(await msger.errorNotice("failed.", error_details), false, "failure");
+            fail("git-ftp command, after successful initialization, failed: " + util.errors());
+          }
+        } else {
+          noticeHandle(await msger.errorNotice("failed.", error_details), false, "failure");
+          fail("git-ftp remote host initialization command failed: " + util.errors());
+        }
+      } else {
+        noticeHandle(await msger.errorNotice("failed.", error_details), false, "failure");
+        fail("git-ftp command failed: " + util.errors());
       }
-
-      error_details = "\n*Error details:*\n```\n" + error_details + "```";
     }
-
-    if (await msger.send(noticePrefix + " failed." + error_details)) {
-      console.log("Slack Notification sent.");
-    } else {
-      // do not fail the whole deploy process if just the notification couldn't
-      // be sent after the process completed.
-      console.error("- WARNING: failure notice couldn't be sent to slack: " + util.pop_last_error());
-    }
-
-    fail("git-ftp command did not complete successfully: " + util.errors());
   }
 }
 

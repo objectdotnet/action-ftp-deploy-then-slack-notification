@@ -4,9 +4,10 @@ import * as util from "./utils";
 let slackhost = "https://hooks.slack.com/services";
 
 interface ISlackMessengerParams {
-  from : string;
-  to : string;
-  portrait_emoji : string
+  from : string,
+  to : string,
+  portraitEmoji : string,
+  noticePrefix: string
 }
 
 function ghBranchLink(owner : string, repo : string, branch : string) {
@@ -47,6 +48,7 @@ class Messenger {
   #username = "";
   #channel = "";
   #portrait = ":pager:";
+  #msgNoticePfx = "";
   #client : http.HttpClient;
 
   constructor(params : ISlackMessengerParams, webHook : string) {
@@ -57,11 +59,32 @@ class Messenger {
     this.#username = params.from;
     this.#channel = params.to;
 
-    if (!util.empty(params.portrait_emoji, 3))
-      this.#portrait = params.portrait_emoji;
+    if (!util.empty(params.portraitEmoji, 3))
+      this.#portrait = params.portraitEmoji;
+
+    if (!util.empty(params.noticePrefix)) {
+      this.#msgNoticePfx = params.noticePrefix;
+    }
 
     this.#client = new http.HttpClient("ftp-and-slack-notify HTTP client / 1.0")
   };
+
+  async errorNotice(message : string, error : string) : Promise<boolean> {
+    // Slack has a message length limit of around 12,000 characters.
+    if (error.length > 11000) {
+      error = error.substr(0, 11000) + "\n\n*** output too long -- truncated ***\n";
+    }
+
+    if (!util.empty(error)) {
+      error = "\n*Error details:*\n```\n" + error + "```";
+    }
+
+    return await this.send(this.#msgNoticePfx + ": " + message + "." + error);
+  }
+
+  async notice(message : string) : Promise<boolean> {
+    return await this.send(this.#msgNoticePfx + ": " + message + ".");
+  }
 
   async send(message : string, from : string = this.#username, to : string = this.#channel) : Promise<boolean> {
     if (invalidWebHook(this.#webhook)) {
