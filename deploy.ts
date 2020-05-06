@@ -142,7 +142,12 @@ async function main() {
     let error_details = util.errors(false);
 
     if (!util.empty(error_details)) {
-      error_details = "\\n*Error details:*\\n```\\n" + error_details + "\\n```";
+      // Slack has a message length limit of around 12,000 characters.
+      if (error_details.length > 11000) {
+        error_details = error_details.substr(0, 11000) + "\n\n(output too long -- cropped)\n";
+      }
+
+      error_details = "\n*Error details:*\n```\n" + error_details + "```";
     }
 
     if (await msger.send(noticePrefix + " failed." + error_details)) {
