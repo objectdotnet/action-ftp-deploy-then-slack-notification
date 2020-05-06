@@ -1,0 +1,31 @@
+name: "FTP deploy then Slack Notification"
+description: "Deploy files to an FTP host, notifying the process through Slack"
+inputs:
+  repo-root:
+    description: "Repository's root folder to deploy."
+    required: true
+    default: "."
+  ftp-host:
+    description: "The hostname of the FTP server which files should be deployed to."
+    required: true
+  ftp-user:
+    description: "The username to use for authentication in the FTP server."
+    required: true
+  ftp-pass:
+    description: "The password to authenticate the FTP user with."
+    required: true
+  ftp-root:
+    description: "The remote FTP folder to deploy files to."
+    required: true
+  slack-webhook:
+    description: "The Slack's Incoming WebHook hash to use to send messages."
+    required: true
+  slack-to:
+    description: "The Slack's recipient to the message (a channel name or ID, or an user ID)."
+  slack-nickn:
+    description: "The Slack's nickname to assign to the sender."
+  slack-icon:
+    description: "The Slack's emoji to use as sender's portrait."
+runs:
+  using: 'node12'
+  main: 'index.js'
