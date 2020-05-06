@@ -22,7 +22,7 @@ inputs:
     required: true
   slack-to:
     description: "The Slack's recipient to the message (a channel name or ID, or an user ID)."
-  slack-nickn:
+  slack-nick:
     description: "The Slack's nickname to assign to the sender."
   slack-icon:
     description: "The Slack's emoji to use as sender's portrait."

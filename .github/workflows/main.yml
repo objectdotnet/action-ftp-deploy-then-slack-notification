@@ -23,5 +23,5 @@ jobs:
         ftp-root: ${{ secrets.ftp_deploy_root }}
         slack-webhook:  ${{ secrets.slack_webhook }}
         slack-to: ${{ secrets.slack_recipient }}
-        slack-nickn: "Deploy Service"
+        slack-nick: "Deploy Service"
         slack-icon: ":construction_worker:"
