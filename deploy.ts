@@ -21,7 +21,7 @@ if (process.env.CI === undefined) {
   console.log("- Script not running from GitHub Actions environment. Stubbing out info.");
 }
 
-let github_action = {
+let ga = {
   workflow: gag.context.workflow,
   runId: process.env.GITHUB_RUN_ID ?? "-1",
   runCount: process.env.GITHUB_RUN_NUMBER ?? "-1",
@@ -108,8 +108,11 @@ let sp : slack.ISlackMessengerParams = {
 let msger = new slack.Messenger(sp, slackHook);
 
 async function main() {
-  let noticePrefix = "Deployment #" + github_action.runCount + " for branch \"" + github_action.branch + "\" " +
-    slack.ghLink(github_action.repo_owner + "/" + github_action.repo);
+  let noticePrefix =
+    slack.ghDeployLink(ga.repo_owner, ga.repo, ga.runId, ga.runCount) +
+    "for " +
+    slack.ghBranchLink(ga.repo_owner, ga.repo, ga.branch.split(/\//)[2]) + " at " +
+    slack.ghRepoLink(ga.repo_owner, ga.repo);
   console.log("Sending Slack notification: " + noticePrefix + " started.");
   if (await msger.send(noticePrefix + " started.")) {
     console.log("Slack Notification sent.");
@@ -136,7 +139,13 @@ async function main() {
       console.error("- WARNING: completion notice couldn't be sent to slack: " + util.pop_last_error());
     }
   } else {
-    if (await msger.send(noticePrefix + " failed.")) {
+    let error_details = util.errors(false);
+
+    if (!util.empty(error_details)) {
+      error_details = "\\n*Error details:*\\n```\\n" + error_details + "\\n```";
+    }
+
+    if (await msger.send(noticePrefix + " failed." + error_details)) {
       console.log("Slack Notification sent.");
     } else {
       // do not fail the whole deploy process if just the notification couldn't

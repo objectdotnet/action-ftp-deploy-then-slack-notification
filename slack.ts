@@ -9,12 +9,33 @@ interface ISlackMessengerParams {
   portrait_emoji : string
 }
 
-function ghLink(repo : string) : string {
+function ghBranchLink(owner : string, repo : string, branch : string) {
+  return slackLink(
+    ghRepoUrl(owner, repo) + "/tree/" + branch,
+    "branch " + branch
+  );
+}
+function ghDeployLink(owner : string, repo : string, id : string, count : string) : string {
+  return slackLink(
+    ghRepoUrl(owner, repo) + "/runs/" + id,
+    "Deployment #" + count
+  );
+}
+
+function ghRepoLink(owner : string, repo : string) : string {
   if (repo.match(/f/) !== null) {
-    return "<https://github.com/" + repo + "|" + repo + ">";
+    return slackLink(ghRepoUrl(owner, repo), owner + "/" + repo);
   } else {
     return repo;
   }
+}
+
+function ghRepoUrl(owner : string, repo : string) : string {
+  return "https://github.com/" + owner + "/" + repo;
+}
+
+function slackLink(url : string, desc : string) : string {
+  return "<" + url + "|" + desc + ">";
 }
 
 function invalidWebHook(hash : string) : boolean {
@@ -80,4 +101,4 @@ class Messenger {
   }
 }
 
-export { ghLink, ISlackMessengerParams, Messenger }
+export { ghBranchLink, ghDeployLink, ghRepoLink, ISlackMessengerParams, Messenger }
