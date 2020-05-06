@@ -94,10 +94,10 @@ class Messenger {
 
     try {
       let response = await this.#client.postJson(slackhost + "/" + this.#webhook, {
-        username: from,
-        channel: to,
+        username: util.empty(from) ? undefined : from,
+        channel: util.empty(to) ? undefined : to,
         text: message,
-        icon_emoji: this.#portrait
+        icon_emoji: util.empty(this.#portrait) ? undefined : this.#portrait
       });
 
       if (response.statusCode != 200) {

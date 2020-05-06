@@ -88,11 +88,11 @@ if (!slackHook.match(/[a-zA-Z0-9\/]{44}/)) {
 }
 
 if (util.empty(slackChan)) {
-  fail("Slack target channel name not specified.");
+  slackChan = "";
 }
 
 if (util.empty(slackNick)) {
-  slackNick = "GitHub Deploy Service";
+  slackNick = "";
 }
 
 if (util.empty(slackIcon)) {
