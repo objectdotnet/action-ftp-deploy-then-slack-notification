@@ -1,27 +1,24 @@
 name: publish_and_notify
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
 on:
   push:
     branches: [ patst ]
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  Test afdtsn:
+    name: Test Action-FTP-Deploy-Then-Slack-Notification
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2.1.0
 
-    # Runs a set of commands using the runners shell
-    - name: Run the deploy process.
-      run: |
-        function error() { >&2 echo "*** Error: ${@}"; exit 1; }
-        npm install || error "unable to install/refresh NPM packages."
-        tsc || error "unable to build 'deploy.ts'."
-        node deploy.js "${{ secrets.deploy_root }}" "${{ secrets.deploy_ftp_host }}" "${{ secrets.deploy_ftp_root }}" "${{ secrets.deploy_ftp_user }}" "${{ secrets.deploy_ftp_pass }}" "${{ secrets.slack_webhook_hash }}" || error "The 'deploy.js' script returned with error."
+    - name: Own afdtsn action (test)
+      uses: objectdotnet/action-ftp-deploy-then-slack-notification@patst
+      with:
+        repo-root: test_site
+        ftp-host: ${{ secrets.ftp_deploy_host }}
+        ftp-user: ${{ secrets.ftp_deploy_user }}
+        ftp-pass: ${{ secrets.ftp_deploy_pass }}
+        ftp-root: ${{ secrets.ftp_deploy_root }}
+        slack-webhook:  ${{ secrets.slack_webhook }}
+        slack-to: ${{ secrets.slack_recipient }}
+        slack-nickn: "Deploy Service"
+        slack-icon: ":construction_worker:"
