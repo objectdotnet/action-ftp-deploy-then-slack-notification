@@ -4,7 +4,7 @@ on:
   push:
     branches: [ patst ]
 jobs:
-  Test afdtsn:
+  test_itself:
     name: Test Action-FTP-Deploy-Then-Slack-Notification
     runs-on: ubuntu-latest
     steps:
