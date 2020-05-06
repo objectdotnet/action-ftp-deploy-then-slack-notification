@@ -5,6 +5,7 @@ import * as slack from "./slack";
 import * as util from "./utils";
 
 let params = process.argv.slice(2);
+let ftpProto="ftp";
 
 let repoRoot = gac.getInput("repo-root");
 let ftpHost = gac.getInput("ftp-host");
@@ -53,7 +54,15 @@ if (! fs.existsSync(repoRoot)) {
 
 if (util.empty(ftpHost, 2)) {
   fail("FTP host address not specified.")
-} if (ftpHost.match(/[^a-zA-Z0-9\._-]+$/)) {
+}
+
+let ftpHostPrefix = ftpHost.match(/^(ftp(|s|es)|sftp):\/\//);
+if (ftpHostPrefix !== null) {
+  ftpProto = ftpHost.substr(0, ftpHostPrefix[0].length - 3)
+  ftpHost = ftpHost.substr(ftpHostPrefix[0].length);
+}
+
+if (ftpHost.match(/[^a-zA-Z0-9\._-]+$/) !== null) {
   fail("FTP host has invalid characters: " + ftpHost);
 }
 
@@ -111,9 +120,10 @@ async function main() {
   let cmd_success = util.runcmd("git", [
     "ftp", "push", "--force", "--auto-init", "--verbose",
     "--syncroot", repoRoot,
+    "--remote-root", ftpRoot,
     "--user", ftpUser,
     "--passwd", ftpPass,
-    ftpHost
+    ftpProto + "://" + ftpHost
   ]);
 
   if (cmd_success) {
