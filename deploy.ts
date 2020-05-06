@@ -26,6 +26,7 @@ let github_action = {
   runCount: process.env.GITHUB_RUN_NUMBER ?? "-1",
   starter: process.env.GITHUB_ACTOR ?? "nobody",
   repo: gag.context.repo.repo,
+  repo_owner: gag.context.repo.owner,
   branch: gag.context.ref
 };
 
@@ -99,9 +100,9 @@ let msger = new slack.Messenger(sp, slackHook);
 
 async function main() {
   let noticePrefix = "Deployment #" + github_action.runCount + " for branch \"" + github_action.branch + "\" " +
-    slack.ghLink(github_action.repo);
+    slack.ghLink(github_action.repo_owner + "/" + github_action.repo);
   console.log("Sending Slack notification: " + noticePrefix + " started.");
-  if (!await msger.send(noticePrefix + " started.")) {
+  if (await msger.send(noticePrefix + " started.")) {
     console.log("Slack Notification sent.");
   } else {
    fail("Error trying to send slack message: " + util.errors());
@@ -125,6 +126,14 @@ async function main() {
       console.error("- WARNING: completion notice couldn't be sent to slack: " + util.pop_last_error());
     }
   } else {
+    if (await msger.send(noticePrefix + " failed.")) {
+      console.log("Slack Notification sent.");
+    } else {
+      // do not fail the whole deploy process if just the notification couldn't
+      // be sent after the process completed.
+      console.error("- WARNING: failure notice couldn't be sent to slack: " + util.pop_last_error());
+    }
+
     fail("git-ftp command did not complete successfully: " + util.errors());
   }
 }
