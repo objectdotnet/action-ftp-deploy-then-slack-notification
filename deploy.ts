@@ -111,17 +111,6 @@ let sp : slack.ISlackMessengerParams = {
 
 let msger = new slack.Messenger(sp, slackHook);
 
-function runGitFtp() : boolean {
-  return util.runcmd("git", [
-    "ftp", "push", "--verbose",
-    "--syncroot", repoRoot,
-    "--remote-root", ftpRoot,
-    "--user", ftpUser,
-    "--passwd", ftpPass,
-    ftpProto + "://" + ftpHost
-  ]);
-}
-
 function noticeHandle(result : boolean, fatal : boolean, action : string = "") {
   if (action.length > 0) action = action + " ";
 
@@ -139,7 +128,14 @@ function noticeHandle(result : boolean, fatal : boolean, action : string = "") {
 async function main() {
   noticeHandle(await msger.notice("started"), true, "start");
 
-  let cmd_success = runGitFtp();
+  let cmd_success = util.runcmd("git", [
+    "ftp", "push", "--force", "--verbose",
+    "--syncroot", repoRoot,
+    "--remote-root", ftpRoot,
+    "--user", ftpUser,
+    "--passwd", ftpPass,
+    ftpProto + "://" + ftpHost
+  ]);
 
   if (cmd_success) {
     noticeHandle(await msger.notice("completed successfully."), false, "completion");
@@ -150,10 +146,11 @@ async function main() {
       // Check if all we need to do is init and retry
       if (error_details.match(/curl: \([0-9]+\) Server denied you to change to the given directory/) !== null) {
         console.log("Attempting to initialize FTP folder structure.");
-        let notice_success = await msger.errorNotice("FTP host needs intialization. Trying to initialize..", error_details);
+        let notice_success = await msger.notice("FTP host needs intialization. Trying to initialize it..");
         noticeHandle(notice_success, false, "FTP folder structure initialization");
         cmd_success = util.runcmd("git", [
-          "ftp", "init", "--verbose",
+          "ftp", "init", "--force", "--verbose",
+          "--syncroot", repoRoot,
           "--remote-root", ftpRoot,
           "--user", ftpUser,
           "--passwd", ftpPass,
@@ -161,18 +158,8 @@ async function main() {
         ]);
 
         if (cmd_success) {
-          notice_success = await msger.notice("Initialization successful, retrying sync..");
+          notice_success = await msger.notice("Initialization and first upload completed successfully.");
           noticeHandle(notice_success, false, "initialization success");
-
-          cmd_success = runGitFtp();
-
-          if (cmd_success) {
-            notice_success = await msger.notice("completed successfully after FTP initialization.");
-            noticeHandle(notice_success, false, "completion");
-          } else {
-            noticeHandle(await msger.errorNotice("failed.", error_details), false, "failure");
-            fail("git-ftp command, after successful initialization, failed: " + util.errors());
-          }
         } else {
           noticeHandle(await msger.errorNotice("failed.", error_details), false, "failure");
           fail("git-ftp remote host initialization command failed: " + util.errors());
