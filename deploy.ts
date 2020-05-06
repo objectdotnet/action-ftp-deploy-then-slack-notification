@@ -121,7 +121,7 @@ async function main() {
   }
 
   let cmd_success = util.runcmd("git", [
-    "ftp", "push", "--force", "--auto-init", "--verbose",
+    "ftp", "push", "--force", "--verbose",
     "--syncroot", repoRoot,
     "--remote-root", ftpRoot,
     "--user", ftpUser,
