@@ -50,6 +50,47 @@ None. This action just returns success or failure depending whether the slack me
 
 Slack messages failing after the FTP sync succeeds won't trigger a failure to the action. But if the first slack message (announcing the action's start) fails, then the whole process will fail.
 
+# Example action descriptor YAML file
+
+The file should be placed in the repository within the `.github/workflows` folder, and may be named as anything ending with the `yml` extension.
+
+#### **`website_publish.yml`:**
+```yaml
+name: website_publish
+
+on:
+  push:
+    branches: [ master ]
+jobs:
+  publish:
+    name: Publishes the website, sending Slack notifications in the meanwhile.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2.1.0
+
+    # This is required until actions/virtual-environments/issues/838 is implemented
+    - name: Get git-ftp ready
+      run: git ftp > /dev/null 2>&1 || sudo apt-get install -y git-ftp
+
+    - name: Website deploy
+      uses: objectdotnet/action-ftp-deploy-then-slack-notification@0.1.0
+      with:
+        repo-root: .
+        ftp-host: ${{ secrets.ftp_deploy_host }}
+        ftp-user: ${{ secrets.ftp_deploy_user }}
+        ftp-pass: ${{ secrets.ftp_deploy_pass }}
+        ftp-root: ${{ secrets.ftp_deploy_root }}
+        slack-webhook:  ${{ secrets.slack_webhook }}
+```
+
+The non-required "with" options (as example) are:
+
+```yaml
+        slack-to: ${{ secrets.slack_recipient }}
+        slack-nick: "Deploy Service"
+        slack-icon: ":construction_worker:"
+```
+
 # Note on secrecy
 
 You can use [repository secret](https://help.github.com/en/actions/configuring-and-managing-workflows/using-variables-and-secrets-in-a-workflow) words to keep sensitive data from being publicly displayed in your repository. FTP Hostname, root directories, username and password, as well as the slack's WebHook; being the latter two the most important ones to be concealed using this technique.
