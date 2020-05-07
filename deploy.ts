@@ -134,9 +134,9 @@ async function main() {
 
   console.log("- Checking git-ftp...");
   if (!util.fetchGitFtp()) {
-    noticeHandle(await msger.notice(
-      "failed. The `git ftp` command is missing and unable to be installed." +
-      "\n*Error details:\n```\n" + util.errors(false) + "\n```"
+    noticeHandle(await msger.errorNotice(
+      "failed. The `git ftp` command is missing and unable to be installed.",
+      util.errors(false)
     ), true, "failure");
     fail("Unable to set up git-ftp: " + util.errors());
   }
@@ -153,7 +153,7 @@ async function main() {
 
   if (cmd_success) {
     console.log("- Repository sync successful.");
-    noticeHandle(await msger.notice("completed successfully."), false, "completion");
+    noticeHandle(await msger.notice("completed successfully"), false, "completion");
   } else {
     console.log("- Repository sync failed.")
     let error_details = util.errors(false);
@@ -175,14 +175,14 @@ async function main() {
 
         if (cmd_success) {
           console.log("- FTP initialization successful. Files shoulb be in sync now.");
-          notice_success = await msger.notice("Initialization and first upload completed successfully.");
+          notice_success = await msger.notice("Initialization and first upload completed successfully");
           noticeHandle(notice_success, false, "initialization success");
         } else {
-          noticeHandle(await msger.errorNotice("failed.", error_details), false, "failure");
+          noticeHandle(await msger.errorNotice("failed", error_details), false, "failure");
           fail("git-ftp remote host initialization command failed: " + util.errors());
         }
       } else {
-        noticeHandle(await msger.errorNotice("failed.", error_details), false, "failure");
+        noticeHandle(await msger.errorNotice("failed", error_details), false, "failure");
         fail("git-ftp command failed: " + util.errors());
       }
     }
