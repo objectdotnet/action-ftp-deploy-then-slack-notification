@@ -4,7 +4,6 @@ import * as gag from "@actions/github";
 import * as slack from "./slack";
 import * as util from "./utils";
 
-let params = process.argv.slice(2);
 let ftpProto="ftp";
 
 let repoRoot = gac.getInput("repo-root");
