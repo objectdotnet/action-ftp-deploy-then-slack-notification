@@ -102,7 +102,7 @@ let sp : slack.ISlackMessengerParams = {
   from: slackNick,
   to: slackChan,
   portraitEmoji: slackIcon,
-  noticePrefix: slack.ghDeployLink(ga.repo_owner, ga.repo, ga.runId, ga.runCount) +
+  noticePrefix: "*" + ga.workflow + "* workflow: " + slack.ghDeployLink(ga.repo_owner, ga.repo, ga.runId, ga.runCount) +
     " for " +
     slack.ghBranchLink(ga.repo_owner, ga.repo, ga.branch.split(/\//)[2]) + " at " +
     slack.ghRepoLink(ga.repo_owner, ga.repo)
