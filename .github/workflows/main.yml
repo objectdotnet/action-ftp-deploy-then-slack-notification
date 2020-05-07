@@ -44,6 +44,8 @@ jobs:
         EOF
         )
         git add test_site_2/index.html
+        git config user.email "anonymous@localdomain"
+        git config user.name "Deployment bot"
         git commit -m "commits temp index file (so git-ftp pushes it)"
 
     - name: Own afdtsn action (test, using Slack default settings)
