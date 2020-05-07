@@ -2,7 +2,7 @@ name: publish_and_notify
 
 on:
   push:
-    branches: [ patst ]
+    branches: [ master ]
 jobs:
   test_itself:
     name: Test Action-FTP-Deploy-Then-Slack-Notification
@@ -14,11 +14,44 @@ jobs:
       run: git ftp > /dev/null 2>&1 || sudo apt-get install -y git-ftp
 
     - name: Own afdtsn action (test)
-      uses: objectdotnet/action-ftp-deploy-then-slack-notification@patst
+      uses: objectdotnet/action-ftp-deploy-then-slack-notification@master
       with:
         repo-root: test_site
         ftp-host: ${{ secrets.ftp_deploy_host }}
         ftp-user: ${{ secrets.ftp_deploy_user }}
         ftp-pass: ${{ secrets.ftp_deploy_pass }}
         ftp-root: ${{ secrets.ftp_deploy_root }}
+        slack-webhook:  ${{ secrets.slack_webhook }}
+        slack-to: ${{ secrets.slack_recipient }}
+        slack-nick: "Deploy Service"
+        slack-icon: ":construction_worker:"
+
+    - name: Make a simple, transient, "test_site_2 page"
+      run: |
+        mkdir test_site_2
+        (cat << EOF > test_site_2/index.html
+        <html>
+         <head>
+          <title>Page from $(date)</title>
+         </head>
+         <body>
+          <h1>It works!</h1>
+          <p>It worked as of $(date)! And it is test two.</p>
+          <h2>Recent git log (max 30 entries)</h2>
+          <pre>$(git log -n 30 --oneline)</pre>
+         </body>
+        </html>
+        EOF
+        )
+        git add test_site_2/index.html
+        git commit -m "commits temp index file (so git-ftp pushes it)"
+
+    - name: Own afdtsn action (test, using Slack default settings)
+      uses: objectdotnet/action-ftp-deploy-then-slack-notification@master
+      with:
+        repo-root: test_site_2
+        ftp-host: ${{ secrets.ftp_deploy_host }}
+        ftp-user: ${{ secrets.ftp_deploy_user }}
+        ftp-pass: ${{ secrets.ftp_deploy_pass }}
+        ftp-root: ${{ secrets.ftp_deploy_root }}_2
         slack-webhook:  ${{ secrets.slack_webhook }}
