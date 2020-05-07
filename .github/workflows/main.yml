@@ -10,9 +10,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2.1.0
 
-    - name: Get git-ftp ready
-      run: git ftp > /dev/null 2>&1 || sudo apt-get install -y git-ftp
-
     - name: Own afdtsn action (test)
       uses: objectdotnet/action-ftp-deploy-then-slack-notification@master
       with:

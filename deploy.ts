@@ -125,6 +125,14 @@ async function main() {
 
   noticeHandle(await msger.notice("started"), true, "start");
 
+  if (!util.fetchGitFtp()) {
+    noticeHandle(await msger.notice(
+      "failed. The `git ftp` command is missing and unable to be installed." +
+      "\n*Error details:\n```\n" + util.errors(false) + "\n```"
+    ), true, "failure");
+    fail("Unable to set up git-ftp: " + util.errors());
+  }
+
   let cmd_success = util.runcmd("git", [
     "ftp", "push", "--force", "--verbose",
     "--syncroot", repoRoot,

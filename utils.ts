@@ -15,6 +15,42 @@ function errors(clear = true) : string {
   return errorList;
 }
 
+function fetchGitFtp() : boolean {
+  let gfUrl = "https://raw.githubusercontent.com/git-ftp/git-ftp/1.6.0/git-ftp";
+  let gfPath = "/usr/local/bin/git-ftp";
+
+  let cmd_success = runcmd("git", [ "ftp", "version" ]);
+
+  if (!cmd_success) {
+    console.log("The git-ftp tool was not found, trying to download it using curl.")
+    // we are going to just ignore the error caused by trying to run git-ftp
+    pop_last_error();
+
+    cmd_success = runcmd("sudo", [ "curl", "--silent", gfUrl, "--output", gfPath ]);
+
+    if (!cmd_success) {
+      log_err("Unable to fetch git-ftp from github: " + pop_last_error());
+      return false;
+    }
+
+    cmd_success = runcmd("sudo", [ "chmod", "a+x", gfPath ]);
+
+    if (!cmd_success) {
+      log_err("Unable to make fetched git-ftp executable: " + pop_last_error());
+      return false;
+    }
+
+    cmd_success = runcmd("git", [ "ftp", "version" ]);
+
+    if (!cmd_success) {
+      log_err("Unable to execute git-ftp after installing: " + pop_last_error());
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function log_err(message: string) {
   errorMessages.push(message);
 }
@@ -131,4 +167,4 @@ class FileReader {
   }
 }
 
-export { empty, errors, FileReader, log_err, pop_last_error, runcmd, trimSlashes };
+export { empty, errors, fetchGitFtp, FileReader, log_err, pop_last_error, runcmd, trimSlashes };

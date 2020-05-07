@@ -68,10 +68,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2.1.0
 
-    # This is required until actions/virtual-environments/issues/838 is implemented
-    - name: Get git-ftp ready
-      run: git ftp > /dev/null 2>&1 || sudo apt-get install -y git-ftp
-
     - name: Website deploy
       uses: objectdotnet/action-ftp-deploy-then-slack-notification@0.1.0
       with:
