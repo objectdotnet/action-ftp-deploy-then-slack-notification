@@ -21,8 +21,10 @@ function fetchGitFtp() : boolean {
 
   let cmd_success = runcmd("git", [ "ftp", "version" ]);
 
-  if (!cmd_success) {
-    console.log("The git-ftp tool was not found, trying to download it using curl.")
+  if (cmd_success) {
+    console.log("- git-ftp already installed.");
+  } else {
+    console.log("- git-ftp not found, attempting to install it.")
     // we are going to just ignore the error caused by trying to run git-ftp
     pop_last_error();
 
@@ -30,6 +32,7 @@ function fetchGitFtp() : boolean {
 
     if (!cmd_success) {
       log_err("Unable to fetch git-ftp from github: " + pop_last_error());
+      console.log("- git-ftp couldn't be downloaded using curl.")
       return false;
     }
 
@@ -37,6 +40,7 @@ function fetchGitFtp() : boolean {
 
     if (!cmd_success) {
       log_err("Unable to make fetched git-ftp executable: " + pop_last_error());
+      console.log("- downloaded git-ftp couldn't be made executable.")
       return false;
     }
 
@@ -44,7 +48,10 @@ function fetchGitFtp() : boolean {
 
     if (!cmd_success) {
       log_err("Unable to execute git-ftp after installing: " + pop_last_error());
+      console.log("- git-ftp still not runnable after installation and deployment.")
       return false;
+    } else {
+      console.log("- git-ftp installed successfully.");
     }
   }
 

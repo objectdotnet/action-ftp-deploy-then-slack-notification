@@ -32,11 +32,11 @@ let ga = {
 
 function fail(message : string, failStat : number = 1) {
   gac.setFailed(message);
-  console.error("Aborting: " + message);
+  console.error("*** Aborting: " + message);
   process.exit(failStat);
 }
 
-console.log("- Checking provided arguments.");
+console.log("- Attempting to initialize Slack messages communication...");
 
 // Try to ensure the slack messaging is up in the earliest
 // So that it can issue descriptive error messages for the
@@ -58,11 +58,13 @@ let sp : slack.ISlackMessengerParams = {
 
 let msger = new slack.Messenger(sp, slackHook);
 
+console.log("- Slack messaging initialized.");
+
 function noticeHandle(result : boolean, fatal : boolean, action : string = "") {
   if (action.length > 0) action = action + " ";
 
   if (result) {
-    console.log("Slack " + action + "notification sent.");
+    console.log("- Slack " + action + "notification sent.");
   } else {
     if (fatal) {
       fail("Unable to send " + action + "slack message: " + util.errors());
@@ -86,6 +88,8 @@ async function main() {
   if (util.empty(repoRoot)) {
     repoRoot = "."
   }
+
+  console.log("- Checking provided action parameters...");
 
   if (repoRoot.match(/^(|[^\/]+\/)\.\.(|\/[^\/]+)$/)) {
     await configError("repo-root", "cannot contain relative paths (`../`)", "Arbitrary relative paths not allowed (\"/../\") in: " + repoRoot);
@@ -123,8 +127,12 @@ async function main() {
     await configError("ftp-pass", "not provided", "FTP password not specified.");
   }
 
+  console.log("- Provided arguments looks right.");
+
+  console.log("- Sending 'job started' message to slack...");
   noticeHandle(await msger.notice("started"), true, "start");
 
+  console.log("- Checking git-ftp...");
   if (!util.fetchGitFtp()) {
     noticeHandle(await msger.notice(
       "failed. The `git ftp` command is missing and unable to be installed." +
@@ -133,6 +141,7 @@ async function main() {
     fail("Unable to set up git-ftp: " + util.errors());
   }
 
+  console.log("- Running git-ftp to sync repository...");
   let cmd_success = util.runcmd("git", [
     "ftp", "push", "--force", "--verbose",
     "--syncroot", repoRoot,
@@ -143,14 +152,16 @@ async function main() {
   ]);
 
   if (cmd_success) {
+    console.log("- Repository sync successful.");
     noticeHandle(await msger.notice("completed successfully."), false, "completion");
   } else {
+    console.log("- Repository sync failed.")
     let error_details = util.errors(false);
 
     if (!util.empty(error_details)) {
       // Check if all we need to do is init and retry
       if (error_details.match(/curl: \([0-9]+\) Server denied you to change to the given directory/) !== null) {
-        console.log("Attempting to initialize FTP folder structure.");
+        console.log("- Error suggests non-initialized FTP structure. Attempting initialization...");
         let notice_success = await msger.notice("FTP host needs intialization. Trying to initialize it..");
         noticeHandle(notice_success, false, "FTP folder structure initialization");
         cmd_success = util.runcmd("git", [
@@ -163,6 +174,7 @@ async function main() {
         ]);
 
         if (cmd_success) {
+          console.log("- FTP initialization successful. Files shoulb be in sync now.");
           notice_success = await msger.notice("Initialization and first upload completed successfully.");
           noticeHandle(notice_success, false, "initialization success");
         } else {
