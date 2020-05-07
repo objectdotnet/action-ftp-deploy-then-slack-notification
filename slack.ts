@@ -47,7 +47,7 @@ class Messenger {
   #webhook = "";
   #username = "";
   #channel = "";
-  #portrait = ":pager:";
+  #portrait = "";
   #msgNoticePfx = "";
   #client : http.HttpClient;
 
