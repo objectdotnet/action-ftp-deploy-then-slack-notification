@@ -24,11 +24,7 @@ function ghDeployLink(owner : string, repo : string, id : string, count : string
 }
 
 function ghRepoLink(owner : string, repo : string) : string {
-  if (repo.match(/f/) !== null) {
-    return slackLink(ghRepoUrl(owner, repo), owner + "/" + repo);
-  } else {
-    return repo;
-  }
+  return slackLink(ghRepoUrl(owner, repo), owner + "/" + repo);
 }
 
 function ghRepoUrl(owner : string, repo : string) : string {
