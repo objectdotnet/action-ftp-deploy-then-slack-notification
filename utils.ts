@@ -19,40 +19,52 @@ function fetchGitFtp() : boolean {
   let gfUrl = "https://raw.githubusercontent.com/git-ftp/git-ftp/1.6.0/git-ftp";
   let gfPath = "/usr/local/bin/git-ftp";
 
-  let cmd_success = runcmd("git", [ "ftp", "version" ]);
-
-  if (cmd_success) {
+  if (runcmd("git", [ "ftp", "version" ])) {
     console.log("- git-ftp already installed.");
+    if (!fs.existsSync(gfPath) && fs.existsSync("/usr/bin/git-ftp")) {
+      console.log("- existing git-ftp installation is at /usr/bin.")
+      gfPath = "/usr/bin/git-ftp";
+    }
   } else {
     console.log("- git-ftp not found, attempting to install it.")
     // we are going to just ignore the error caused by trying to run git-ftp
     pop_last_error();
 
-    cmd_success = runcmd("sudo", [ "curl", "--silent", gfUrl, "--output", gfPath ]);
-
-    if (!cmd_success) {
+    if (!runcmd("sudo", [ "curl", "--silent", gfUrl, "--output", gfPath ])) {
       log_err("Unable to fetch git-ftp from github: " + pop_last_error());
       console.log("- git-ftp couldn't be downloaded using curl.")
       return false;
     }
 
-    cmd_success = runcmd("sudo", [ "chmod", "a+x", gfPath ]);
-
-    if (!cmd_success) {
+    if (!runcmd("sudo", [ "chmod", "a+x", gfPath ])) {
       log_err("Unable to make fetched git-ftp executable: " + pop_last_error());
       console.log("- downloaded git-ftp couldn't be made executable.")
       return false;
     }
 
-    cmd_success = runcmd("git", [ "ftp", "version" ]);
-
-    if (!cmd_success) {
+    if (!runcmd("git", [ "ftp", "version" ])) {
       log_err("Unable to execute git-ftp after installing: " + pop_last_error());
       console.log("- git-ftp still not runnable after installation and deployment.")
       return false;
     } else {
       console.log("- git-ftp installed successfully.");
     }
+  }
+
+  console.log("- checking if git-ftp needs the remote-delete fix (git-ftp/git-ftp#541)...");
+  if (runcmd("grep", [ "--extended-regexp", "--quiet", "^REMOTE_DELETE_CMD=\"-\\*DELE \"$", gfPath ])) {
+    console.log("- git-ftp has the bug. Fixing...");
+    if (runcmd("sudo", [ "sed", "-Ei", "s/^(REMOTE_DELETE_CMD=\")-\\*(DELE \")$/\\1\\2/", gfPath ])) {
+      console.log("- issue fixed.");
+    } else {
+      console.log("- unable to fix git-ftp issue; sudo+sed returned non-zero exit status.");
+      log_err("Unable to fix issue git-ftp/git-ftp#541 from git-ftp. The sudo + sed command " +
+        "returned non-zero exit status: " + pop_last_error()
+      )
+      return false;
+    }
+  } else {
+    console.log("- installed git-ftp is not affected by the issue.");
   }
 
   return true;
@@ -69,16 +81,20 @@ function pop_last_error() {
 function runcmd(command: string, args : string[]) : boolean {
   let result = spawnSync(command, args);
 
+  let cmdInfo = "\n- Command: " + command + // (could expose sensitive info) // " " + args.join(" ") + "\n" +
+    "\n- " + (!result.stdout ? "No stdout data." : "Command output (stdout): \n---\n" + result.stdout + "\n---") +
+    "\n- " + (!result.stderr ? "No stderr data." : "Command output (stderr): \n---\n" + result.stderr + "\n---" ) +
+    "\n- " + (!result.error ? "No general error data." : "General failure: \n---\n" + result.error + "\n---" );
+
   if (result.status == null) {
-    log_err("Command interrupted by signal: " + result.signal);
+    if (result.signal == null) {
+      log_err("Unable to execute command." + cmdInfo);
+    } else {
+      log_err("Command interrupted by signal: " + result.signal + cmdInfo);
+    }
     return false;
   } else if (result.status != 0) {
-    log_err(
-      "Command returned non-zero exit status: exit(" + result.status + ")\n" +
-      "- Command: " + command + "\n" + // (could expose sensitive info) // " " + args.join(" ") + "\n" +
-      "- Command output (stdout): \n---\n" + result.stdout + "\n---\n" +
-      "- Command output (stderr): \n---\n" + result.stderr + "\n---\n"
-    );
+    log_err("Command returned non-zero exit status: exit(" + result.status + ")" + cmdInfo);
     return false;
   } else {
     return true;
