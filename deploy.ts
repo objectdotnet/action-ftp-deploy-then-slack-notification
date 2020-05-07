@@ -38,71 +38,20 @@ function fail(message : string, failStat : number = 1) {
 }
 
 console.log("- Checking provided arguments.");
-repoRoot = util.trimSlashes(repoRoot);
-if (util.empty(repoRoot)) {
-  repoRoot = "."
-}
 
-if (repoRoot.match(/^(|[^\/]+\/)\.\.(|\/[^\/]+)$/)) {
-  fail("Arbitrary relative paths not allowed (\"/../\") in: " + repoRoot)
-}
-
-if (! fs.existsSync(repoRoot)) {
-  fail("Unable to locate local root directory to deploy: " + repoRoot)
-}
-
-if (util.empty(ftpHost, 2)) {
-  fail("FTP host address not specified.")
-}
-
-let ftpHostPrefix = ftpHost.match(/^(ftp(|s|es)|sftp):\/\//);
-if (ftpHostPrefix !== null) {
-  ftpProto = ftpHost.substr(0, ftpHostPrefix[0].length - 3)
-  ftpHost = ftpHost.substr(ftpHostPrefix[0].length);
-}
-
-if (ftpHost.match(/[^a-zA-Z0-9\._-]+$/) !== null) {
-  fail("FTP host has invalid characters: " + ftpHost);
-}
-
-if (util.empty(ftpRoot, 2)) {
-  fail("FTP root directory not specified.")
-}
-ftpRoot = util.trimSlashes(ftpRoot);
-
-if (util.empty(ftpUser)) {
-  fail("FTP username not specified.")
-}
-
-if (util.empty(ftpPass)) {
-  fail("FTP password not specified.")
-}
-
+// Try to ensure the slack messaging is up in the earliest
+// So that it can issue descriptive error messages for the
+// other issues.
 if (util.empty(slackHook, 2)) {
-  fail("Slack webhook hash not specified.")
-}
-
-if (!slackHook.match(/[a-zA-Z0-9\/]{44}/)) {
-  fail("Slack webhook hash is in unsupported format.")
-}
-
-if (util.empty(slackChan)) {
-  slackChan = "";
-}
-
-if (util.empty(slackNick)) {
-  slackNick = "";
-}
-
-if (util.empty(slackIcon)) {
-  slackIcon = "";
+  fail("Slack webhook hash not specified.");
 }
 
 let sp : slack.ISlackMessengerParams = {
   from: slackNick,
   to: slackChan,
   portraitEmoji: slackIcon,
-  noticePrefix: "*" + ga.workflow + "* workflow: " + slack.ghDeployLink(ga.repo_owner, ga.repo, ga.runId, ga.runCount) +
+  noticePrefix: "*" + ga.workflow + "* workflow: " +
+    slack.ghDeployLink(ga.repo_owner, ga.repo, ga.runId, ga.runCount) +
     " for " +
     slack.ghBranchLink(ga.repo_owner, ga.repo, ga.branch.split(/\//)[2]) + " at " +
     slack.ghRepoLink(ga.repo_owner, ga.repo)
@@ -124,7 +73,57 @@ function noticeHandle(result : boolean, fatal : boolean, action : string = "") {
   }
 }
 
+async function configError(inputName : string, slackMsg : string, consoleMsg : string) {
+  noticeHandle(
+    await msger.notice("configuration error: `" + inputName + "` input value " + slackMsg + "."),
+    true,
+    "configuration issue"
+  );
+  fail(consoleMsg);
+}
+
 async function main() {
+  repoRoot = util.trimSlashes(repoRoot);
+  if (util.empty(repoRoot)) {
+    repoRoot = "."
+  }
+
+  if (repoRoot.match(/^(|[^\/]+\/)\.\.(|\/[^\/]+)$/)) {
+    await configError("repo-root", "cannot contain relative paths (`../`)", "Arbitrary relative paths not allowed (\"/../\") in: " + repoRoot);
+  }
+
+  if (! fs.existsSync(repoRoot)) {
+    await configError("repo-root", "path not found in repository", "Unable to locate local root directory to deploy: " + repoRoot);
+  }
+
+  if (util.empty(ftpHost, 2)) {
+    await configError("ftp-host", "not provided", "FTP host address not specified.");
+  }
+
+  let ftpHostPrefix = ftpHost.match(/^(ftp(|s|es)|sftp):\/\//);
+  if (ftpHostPrefix !== null) {
+    ftpProto = ftpHost.substr(0, ftpHostPrefix[0].length - 3)
+    ftpHost = ftpHost.substr(ftpHostPrefix[0].length);
+  }
+
+  if (ftpHost.match(/[^a-zA-Z0-9\._-]+$/) !== null) {
+    await configError("ftp-host", "is not valid", "FTP host has invalid characters: " + ftpHost);
+  }
+
+  if (util.empty(ftpRoot, 2)) {
+    await configError("ftp-root", "not provided", "FTP root directory not specified.");
+  }
+
+  ftpRoot = util.trimSlashes(ftpRoot);
+
+  if (util.empty(ftpUser)) {
+    await configError("ftp-user", "not provided", "FTP username not specified.");
+  }
+
+  if (util.empty(ftpPass)) {
+    await configError("ftp-pass", "not provided", "FTP password not specified.");
+  }
+
   noticeHandle(await msger.notice("started"), true, "start");
 
   let cmd_success = util.runcmd("git", [
