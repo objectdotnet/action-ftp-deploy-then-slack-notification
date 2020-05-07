@@ -67,6 +67,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2.1.0
+      with:
+        fetch-depth: 0
 
     - name: Website deploy
       uses: objectdotnet/action-ftp-deploy-then-slack-notification@0.1.0

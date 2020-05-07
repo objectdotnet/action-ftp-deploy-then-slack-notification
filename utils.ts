@@ -52,22 +52,6 @@ function fetchGitFtp() : boolean {
     }
   }
 
-  console.log("- checking if git-ftp needs the remote-delete fix (git-ftp/git-ftp#541)...");
-  if (runcmd("grep", [ "--extended-regexp", "--quiet", "^REMOTE_DELETE_CMD=\"-\\*DELE \"$", gfPath ])) {
-    console.log("- git-ftp has the bug. Fixing...");
-    if (runcmd("sudo", [ "sed", "-Ei", "s/^(REMOTE_DELETE_CMD=\")-\\*(DELE \")$/\\1\\2/", gfPath ])) {
-      console.log("- issue fixed.");
-    } else {
-      console.log("- unable to fix git-ftp issue; sudo+sed returned non-zero exit status.");
-      log_err("Unable to fix issue git-ftp/git-ftp#541 from git-ftp. The sudo + sed command " +
-        "returned non-zero exit status: " + pop_last_error()
-      )
-      return false;
-    }
-  } else {
-    console.log("- installed git-ftp is not affected by the issue.");
-  }
-
   return true;
 }
 
