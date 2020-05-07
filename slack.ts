@@ -56,11 +56,10 @@ class Messenger {
       throw new Error("Unable to bind webhook provided to Slack.Messenger: " + util.pop_last_error());
     }
 
-    this.#username = params.from;
-    this.#channel = params.to;
+    if (!util.empty(params.from)) this.setUser(params.from);
+    if (!util.empty(params.to)) this.setChan(params.to);
 
-    if (!util.empty(params.portraitEmoji, 3))
-      this.#portrait = params.portraitEmoji;
+    if (!util.empty(params.portraitEmoji)) this.setPortrait(params.portraitEmoji);
 
     if (!util.empty(params.noticePrefix)) {
       this.#msgNoticePfx = params.noticePrefix;
@@ -113,8 +112,48 @@ class Messenger {
     return true;
   }
 
+  setUser(which : string) : boolean {
+    if (util.empty(which)) {
+      util.log_err("Attempt to assign an invalid/empty Slack nickname: " + which);
+      return false;
+    }
+
+    this.#username = which;
+    return true;
+  }
+
+  setChan(which : string) : boolean {
+    if (util.empty(which, 2)) {
+      util.log_err("Attempt to assign an invalid/empty Slack channel: " + which);
+      return false;
+    }
+
+    this.#channel = which;
+    return true;
+  }
+
+  setPortrait(which : string) : boolean {
+    if (util.empty(which, 3)) {
+      util.log_err("Attempt to assign an invalid/empty Slack icon: " + which);
+      return false;
+    }
+
+    this.#portrait = util.empty(which, 3) ? "" : which;
+    return true;
+  }
+
   setWebHook(hash : string) : boolean {
     if (invalidWebHook(hash)) {
+
+      // Strips leading webhook host if that's the case.
+      if (hash.startsWith(slackhost + "/")) {
+        let trimmed_hash = hash.substr(slackhost.length + 1);
+        if (!invalidWebHook(trimmed_hash)) {
+          this.#webhook = trimmed_hash;
+          return true;
+        }
+      }
+
       util.log_err("Invalid webhook provided.");
       return false;
     }

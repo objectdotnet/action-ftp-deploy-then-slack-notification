@@ -28,7 +28,7 @@ Repository's root folder to deploy. Default: `"."`.
 
 ### `slack-webhook`
 
-**Required** The Slack's Incoming WebHook hash to use to send messages. No default value. The format accepted is the `TXXXXX/BXXXXX/XXXXXXXXXX`, the rest of the URL should be discarded.
+**Required** The Slack's Incoming WebHook hash to use to send messages. No default value. The format accepted is `TXXXXX/BXXXXX/XXXXXXXXXX`, or the full URL.
 
 ### `slack-to`
 
