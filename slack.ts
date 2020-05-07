@@ -40,7 +40,7 @@ function slackLink(url : string, desc : string) : string {
 }
 
 function invalidWebHook(hash : string) : boolean {
-  return hash.match(/^T[A-Z0-9]{8}\/B[A-Z0-9]{8}\/[A-Za-z0-9]{24}$/) == null;
+  return hash.match(/^T[A-Z0-9]{7,9}\/B[A-Z0-9]{7,11}\/[A-Za-z0-9]{24}$/) == null;
 }
 
 class Messenger {
