@@ -3,7 +3,6 @@ description: "Deploy files to an FTP host, notifying the process through Slack"
 inputs:
   repo-root:
     description: "Repository's root folder to deploy."
-    required: true
     default: "."
   ftp-host:
     description: "The hostname of the FTP server which files should be deployed to."

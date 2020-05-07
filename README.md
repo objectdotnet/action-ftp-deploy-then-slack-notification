@@ -8,7 +8,7 @@ This is a part of [GitHub Actions](https://github.com/objectdotnet/github-action
 
 ### `repo-root`
 
-**Required** Repository's root folder to deploy. Default: `"."`.
+Repository's root folder to deploy. Default: `"."`.
 
 ### `ftp-host`
 

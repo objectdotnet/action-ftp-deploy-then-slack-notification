@@ -38,11 +38,10 @@ function fail(message : string, failStat : number = 1) {
 }
 
 console.log("- Checking provided arguments.");
-if (util.empty(repoRoot, 2)) {
-  fail("Local repository root directory not specified.")
-}
-
 repoRoot = util.trimSlashes(repoRoot);
+if (util.empty(repoRoot)) {
+  repoRoot = "."
+}
 
 if (repoRoot.match(/^(|[^\/]+\/)\.\.(|\/[^\/]+)$/)) {
   fail("Arbitrary relative paths not allowed (\"/../\") in: " + repoRoot)
