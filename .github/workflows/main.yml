@@ -22,6 +22,3 @@ jobs:
         ftp-pass: ${{ secrets.ftp_deploy_pass }}
         ftp-root: ${{ secrets.ftp_deploy_root }}
         slack-webhook:  ${{ secrets.slack_webhook }}
-        slack-to: ${{ secrets.slack_recipient }}
-        slack-nick: "Deploy Service"
-        slack-icon: ":construction_worker:"
