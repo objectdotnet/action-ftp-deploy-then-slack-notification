@@ -28,7 +28,7 @@ This is a part of [GitHub Actions](https://github.com/objectdotnet/github-action
 
 ### `slack-webhook`
 
-**Required** The Slack's Incoming WebHook hash to use to send messages. No default value.
+**Required** The Slack's Incoming WebHook hash to use to send messages. No default value. The format accepted is the `TXXXXX/BXXXXX/XXXXXXXXXX`, the rest of the URL should be discarded.
 
 ### `slack-to`
 
