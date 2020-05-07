@@ -2,6 +2,7 @@ import * as fs from "fs";
 import { spawnSync } from "child_process";
 
 let errorMessages: string[] = [];
+let commandOutput: string[] = [];
 
 function empty(what : string, minlen = 1) : boolean {
   return what.length < minlen;
@@ -74,8 +75,12 @@ function log_err(message: string) {
   errorMessages.push(message);
 }
 
-function pop_last_error() {
-  return errorMessages.pop();
+function pop_last_cmd() : string {
+  return commandOutput.pop() ?? "";
+}
+
+function pop_last_error() : string {
+  return errorMessages.pop() ?? "";
 }
 
 function runcmd(command: string, args : string[]) : boolean {
@@ -97,6 +102,7 @@ function runcmd(command: string, args : string[]) : boolean {
     log_err("Command returned non-zero exit status: exit(" + result.status + ")" + cmdInfo);
     return false;
   } else {
+    commandOutput.push(cmdInfo);
     return true;
   }
 }
@@ -190,4 +196,4 @@ class FileReader {
   }
 }
 
-export { empty, errors, fetchGitFtp, FileReader, log_err, pop_last_error, runcmd, trimSlashes };
+export { empty, errors, fetchGitFtp, FileReader, log_err, pop_last_cmd, pop_last_error, runcmd, trimSlashes };

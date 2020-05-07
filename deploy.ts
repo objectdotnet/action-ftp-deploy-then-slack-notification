@@ -152,6 +152,7 @@ async function main() {
   ]);
 
   if (cmd_success) {
+    console.log(util.pop_last_cmd());
     console.log("- Repository sync successful.");
     noticeHandle(await msger.notice("completed successfully"), false, "completion");
   } else {
@@ -174,6 +175,7 @@ async function main() {
         ]);
 
         if (cmd_success) {
+          console.log(util.pop_last_cmd());
           console.log("- FTP initialization successful. Files shoulb be in sync now.");
           notice_success = await msger.notice("Initialization and first upload completed successfully");
           noticeHandle(notice_success, false, "initialization success");
