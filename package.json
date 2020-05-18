@@ -17,8 +17,8 @@
     "slack",
     "notifications"
   ],
-  "author": "Fabricio Zimmerer Murta",
-  "license": "MIT",
+  "author": "Object.NET, Inc.",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/objectdotnet/github-actions/issues"
   },
