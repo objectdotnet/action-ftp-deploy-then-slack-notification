@@ -11,7 +11,9 @@ function empty(what : string, minlen = 1) : boolean {
 function errors(clear = true) : string {
   let errorList = errorMessages.join("\n");
 
-  if (clear) errorMessages = [];
+  if (clear) {
+    errorMessages = [];
+  }
 
   return errorList;
 }
@@ -22,8 +24,10 @@ function fetchGitFtp() : boolean {
 
   if (runcmd("git", [ "ftp", "version" ])) {
     console.log("- git-ftp already installed.");
+
     if (!fs.existsSync(gfPath) && fs.existsSync("/usr/bin/git-ftp")) {
       console.log("- existing git-ftp installation is at /usr/bin.")
+    
       gfPath = "/usr/bin/git-ftp";
     }
   } else {
@@ -33,19 +37,25 @@ function fetchGitFtp() : boolean {
 
     if (!runcmd("sudo", [ "curl", "--silent", gfUrl, "--output", gfPath ])) {
       log_err("Unable to fetch git-ftp from github: " + pop_last_error());
+    
       console.log("- git-ftp couldn't be downloaded using curl.")
+    
       return false;
     }
 
     if (!runcmd("sudo", [ "chmod", "a+x", gfPath ])) {
       log_err("Unable to make fetched git-ftp executable: " + pop_last_error());
+    
       console.log("- downloaded git-ftp couldn't be made executable.")
+    
       return false;
     }
 
     if (!runcmd("git", [ "ftp", "version" ])) {
       log_err("Unable to execute git-ftp after installing: " + pop_last_error());
+    
       console.log("- git-ftp still not runnable after installation and deployment.")
+    
       return false;
     } else {
       console.log("- git-ftp installed successfully.");
@@ -81,19 +91,27 @@ function runcmd(command: string, args : string[]) : boolean {
     } else {
       log_err("Command interrupted by signal: " + result.signal + cmdInfo);
     }
+
     return false;
   } else if (result.status != 0) {
     log_err("Command returned non-zero exit status: exit(" + result.status + ")" + cmdInfo);
+    
     return false;
   } else {
     commandOutput.push(cmdInfo);
+    
     return true;
   }
 }
 
 function trimSlashes(what: string) {
-  if (what.startsWith("/")) what = what.replace(/^\/+/, "");
-  if (what.endsWith("/")) what = what.replace(/\/+$/, "");
+  if (what.startsWith("/")) {
+    what = what.replace(/^\/+/, "");
+  }
+
+  if (what.endsWith("/")) {
+    what = what.replace(/\/+$/, "");
+  }
 
   return what;
 }
@@ -105,6 +123,7 @@ class FileReader {
   open(path: string) : boolean {
     if (!fs.existsSync(path)) {
       log_err("Unable to fetch log for current git HEAD.");
+
       return false;
     }
 
@@ -115,7 +134,9 @@ class FileReader {
   };
 
   constructor(path : string = "") {
-    if (path.length > 0) this.open(path);
+    if (path.length > 0) {
+      this.open(path);
+    }
   }
 
   read() : string {
@@ -130,15 +151,20 @@ class FileReader {
 
     if (this.#rd_fd < 0) {
       log_err("Unable to read next line: no file is open.");
+
       return "";
     }
 
     while (fs.readSync(this.#rd_fd, buf, 0, buf.length, null)) {
       char = buf.toString();
 
-      if (char == "\r") continue;
+      if (char == "\r") {
+        continue;
+      }
+
       if (char == "\n") {
         eof = false;
+      
         break;
       } else {
         // Allocate more buffer space if full.
@@ -159,7 +185,9 @@ class FileReader {
       line = tmpbuf.toString();
     }
 
-    if (eof) this.#rd_eof = true;
+    if (eof) {
+      this.#rd_eof = true;
+    }
 
     return line;
   }
@@ -171,6 +199,7 @@ class FileReader {
   close() : boolean {
     if (this.#rd_fd < 0) {
       log_err("Unable to finish file reading: no file is open.");
+      
       return false;
     }
 

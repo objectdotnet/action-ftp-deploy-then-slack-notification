@@ -16,6 +16,7 @@ function ghBranchLink(owner : string, repo : string, branch : string) {
     "branch " + branch
   );
 }
+
 function ghDeployLink(owner : string, repo : string, id : string, count : string) : string {
   return slackLink(
     ghRepoUrl(owner, repo) + "/runs/" + id,
@@ -52,10 +53,17 @@ class Messenger {
       throw new Error("Unable to bind webhook provided to Slack.Messenger: " + util.pop_last_error());
     }
 
-    if (!util.empty(params.from)) this.setUser(params.from);
-    if (!util.empty(params.to)) this.setChan(params.to);
+    if (!util.empty(params.from)) {
+      this.setUser(params.from);
+    }
 
-    if (!util.empty(params.portraitEmoji)) this.setPortrait(params.portraitEmoji);
+    if (!util.empty(params.to)) {
+      this.setChan(params.to);
+    }
+
+    if (!util.empty(params.portraitEmoji)) {
+      this.setPortrait(params.portraitEmoji);
+    }
 
     if (!util.empty(params.noticePrefix)) {
       this.#msgNoticePfx = params.noticePrefix;
@@ -84,6 +92,7 @@ class Messenger {
   async send(message : string, from : string = this.#username, to : string = this.#channel) : Promise<boolean> {
     if (invalidWebHook(this.#webhook)) {
       util.log_err("Invalid Slack WebHook provided to SlackMSG module.");
+
       return false;
     }
 
@@ -98,10 +107,12 @@ class Messenger {
       if (response.statusCode != 200) {
         util.log_err("Slack message HTTP submission returned status " + response.statusCode + ".\n" +
           "HTTP response:\n" + response.result);
+        
         return false;
       }
     } catch (err) {
       util.log_err("Slack message HTTP submission attempt resulted in error: " + err);
+
       return false;
     }
 
@@ -111,30 +122,36 @@ class Messenger {
   setUser(which : string) : boolean {
     if (util.empty(which)) {
       util.log_err("Attempt to assign an invalid/empty Slack nickname: " + which);
+
       return false;
     }
 
     this.#username = which;
+
     return true;
   }
 
   setChan(which : string) : boolean {
     if (util.empty(which, 2)) {
       util.log_err("Attempt to assign an invalid/empty Slack channel: " + which);
+
       return false;
     }
 
     this.#channel = which;
+
     return true;
   }
 
   setPortrait(which : string) : boolean {
     if (util.empty(which, 3)) {
       util.log_err("Attempt to assign an invalid/empty Slack icon: " + which);
+    
       return false;
     }
 
     this.#portrait = util.empty(which, 3) ? "" : which;
+    
     return true;
   }
 
@@ -144,17 +161,21 @@ class Messenger {
       // Strips leading webhook host if that's the case.
       if (hash.startsWith(slackhost + "/")) {
         let trimmed_hash = hash.substr(slackhost.length + 1);
+        
         if (!invalidWebHook(trimmed_hash)) {
           this.#webhook = trimmed_hash;
+          
           return true;
         }
       }
 
       util.log_err("Invalid webhook provided.");
+      
       return false;
     }
 
     this.#webhook = hash;
+    
     return true;
   }
 }
