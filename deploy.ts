@@ -172,8 +172,36 @@ async function main() {
     let error_details = util.errors(false);
 
     if (!util.empty(error_details)) {
-      noticeHandle(await msger.errorNotice("failed", error_details), false, "failure");
-      fail("git-ftp command failed: " + util.errors());
+      // Check if all we need to do is init and retry
+      if (error_details.match(/fatal: Could not get last commit. Use 'git ftp init' for the initial push. The resource does not exist./) !== null) {
+        console.log("- Error suggests non-initialized FTP structure. Attempting initialization...");
+
+        let notice_success = await msger.notice("FTP host needs intialization. Trying to initialize it..");
+        noticeHandle(notice_success, false, "FTP folder structure initialization");
+
+        cmd_success = util.runcmd("git", [
+          "ftp", "init", "--force", "--verbose",
+          "--syncroot", repoRoot,
+          "--remote-root", ftpRoot,
+          "--user", ftpUser,
+          "--passwd", ftpPass,
+          ftpProto + "://" + ftpHost
+        ]);
+
+        if (cmd_success) {
+          console.log(util.pop_last_cmd());
+          console.log("- FTP initialization successful. Files should be in sync now.");
+
+          notice_success = await msger.notice("Initialization and first upload completed successfully");
+          noticeHandle(notice_success, false, "initialization success");
+        } else {
+          noticeHandle(await msger.errorNotice("failed", error_details), false, "failure");
+          fail("git-ftp remote host initialization command failed: " + util.errors());
+        }
+      } else {
+        noticeHandle(await msger.errorNotice("failed", error_details), false, "failure");
+        fail("git-ftp command failed: " + util.errors());
+      }
     }
   }
 }
