@@ -34,7 +34,7 @@ function fail(message : string, failStat : number = 1) {
   gac.setFailed(message);
 
   console.error("*** Aborting: " + message);
-  
+
   process.exit(failStat);
 }
 
@@ -164,7 +164,7 @@ async function main() {
   if (cmd_success) {
     console.log(util.pop_last_cmd());
     console.log("- Repository sync successful.");
-    
+
     noticeHandle(await msger.notice("completed successfully"), false, "completion");
   } else {
     console.log("- Repository sync failed.")
@@ -172,36 +172,8 @@ async function main() {
     let error_details = util.errors(false);
 
     if (!util.empty(error_details)) {
-      // Check if all we need to do is init and retry
-      if (error_details.match(/curl: \([0-9]+\) Server denied you to change to the given directory/) !== null) {
-        console.log("- Error suggests non-initialized FTP structure. Attempting initialization...");
-
-        let notice_success = await msger.notice("FTP host needs intialization. Trying to initialize it..");
-        noticeHandle(notice_success, false, "FTP folder structure initialization");
-        
-        cmd_success = util.runcmd("git", [
-          "ftp", "init", "--force", "--verbose",
-          "--syncroot", repoRoot,
-          "--remote-root", ftpRoot,
-          "--user", ftpUser,
-          "--passwd", ftpPass,
-          ftpProto + "://" + ftpHost
-        ]);
-
-        if (cmd_success) {
-          console.log(util.pop_last_cmd());
-          console.log("- FTP initialization successful. Files shoulb be in sync now.");
-        
-          notice_success = await msger.notice("Initialization and first upload completed successfully");
-          noticeHandle(notice_success, false, "initialization success");
-        } else {
-          noticeHandle(await msger.errorNotice("failed", error_details), false, "failure");
-          fail("git-ftp remote host initialization command failed: " + util.errors());
-        }
-      } else {
-        noticeHandle(await msger.errorNotice("failed", error_details), false, "failure");
-        fail("git-ftp command failed: " + util.errors());
-      }
+      noticeHandle(await msger.errorNotice("failed", error_details), false, "failure");
+      fail("git-ftp command failed: " + util.errors());
     }
   }
 }
