@@ -71,7 +71,7 @@ jobs:
         fetch-depth: 0
 
     - name: Website deploy
-      uses: objectdotnet/action-ftp-deploy-then-slack-notification@0.1.0
+      uses: objectdotnet/action-ftp-deploy-then-slack-notification@0.2.0
       with:
         repo-root: .
         ftp-host: ${{ secrets.ftp_deploy_host }}
