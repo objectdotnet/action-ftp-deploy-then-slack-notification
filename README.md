@@ -95,6 +95,20 @@ You can use [repository secret](https://help.github.com/en/actions/configuring-a
 
 **Secrets disclosure warning:** if any exception or git-ftp command imprints sensitive data, **it may be sent through the Slack notification message**. Especially if `git-ftp` fails due to an incorrect parameter, the slack notice will include the command's output that may potentially disclose sensitive information. To avoid this, arguments passed to the `git-ftp` command (which includes the password) are suppressed from the Slack notification, but we can't guarantee `git-ftp` error output will consistently suppress passwords display.
 
+# Action building
+
+We have chosen to bundle everything into a minified `index.js` file instead of committing the whole 22MB of the `node_modules/` folder.
+
+For this, we are using the suggested alternative from github guide, the [Creating a JavaScript action](https://help.github.com/en/actions/building-actions/creating-a-javascript-action#commit-tag-and-push-your-action-to-github), that is to use the [@zeit/ncc NPM package](https://www.npmjs.com/package/@zeit/ncc). Instead of installing it system-wide, we included it in the project's package.json file and call it directly off its installation in node_modules.
+
+In summary, the process to build the resulting `index.js` file consists of:
+
+```bash
+npm install # necessary first time, to install NPM packages
+tsc         # compile the files through typescript
+node node_modules/@zeit/ncc/dist/ncc/cli build deploy.js --out . --minify --no-cache --quiet --external "@zeit/ncc"
+```
+
 # Further reading
 
 All about GitHub Actions is documented at [GitHub Actions Documentation Page](https://help.github.com/en/actions/getting-started-with-github-actions)
