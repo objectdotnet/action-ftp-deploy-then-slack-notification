@@ -6,41 +6,17 @@ This is a part of [GitHub Actions](https://github.com/objectdotnet/github-action
 
 # Inputs
 
-### `repo-root`
-
-Repository's root folder to deploy. Default: `"."`.
-
-### `ftp-host`
-
-**Required** The hostname of the FTP server which files should be deployed to. No default value.
-
-### `ftp-user`
-
-**Required** The name of the person to greet. Default `"World"`. No default value.
-
-### `ftp-pass`
-
-**Required** The password to authenticate the FTP user with. No default value. *Note:* Remember to store this as a [repository secret](https://help.github.com/en/actions/configuring-and-managing-workflows/using-variables-and-secrets-in-a-workflow)!
-
-### `ftp-root`
-
-**Required** The remote FTP folder to deploy files to. No default value.
-
-### `slack-webhook`
-
-**Required** The Slack's Incoming WebHook hash to use to send messages. No default value. The format accepted is `TXXXXX/BXXXXX/XXXXXXXXXX`, or the full URL.
-
-### `slack-to`
-
-The Slack's recipient to the message (a channel name or ID, or an user ID). Default: _empty_ (will use whatever is set up in Slack).
-
-### `slack-nick`
-
-The Slack's nickname to assign to the sender. Default: _empty_ (will use whatever is set up in Slack).
-
-### `slack-icon`
-
-The Slack's emoji to use as sender's portrait. Default: _empty_ (will use whatever is set up in Slack).
+Command | Description
+-- | --
+`repo-root` | Repository's root folder to deploy. Default: `"."`.
+`ftp-host` | **Required** The hostname of the FTP server which files should be deployed to. No default value.
+`ftp-user` | **Required** The name of the person to greet. Default `"World"`. No default value.
+`ftp-pass` | **Required** The password to authenticate the FTP user with. No default value. *Note:* Remember to store this as a [repository secret](https://help.github.com/en/actions/configuring-and-managing-workflows/using-variables-and-secrets-in-a-workflow)!
+`ftp-root` | **Required** The remote FTP folder to deploy files to. No default value.
+`slack-webhook` | **Required** The Slack's Incoming WebHook hash to use to send messages. No default value. The format accepted is `TXXXXX/BXXXXX/XXXXXXXXXX`, or the full URL.
+`slack-to` | The Slack's recipient to the message (a channel name or ID, or an user ID). Default: _empty_ (will use whatever is set up in Slack).
+`slack-nick` | The Slack's nickname to assign to the sender. Default: _empty_ (will use whatever is set up in Slack).
+`slack-icon` | The Slack's emoji to use as sender's portrait. Default: _empty_ (will use whatever is set up in Slack).
 
 **Note:** You can use Slack's own emoji picker to check which ones are supported and what's the corresponding string expansion. [Custom emoji](https://slack.com/intl/en-br/help/articles/206870177-Add-custom-emoji) can be used as well. [Unofficial list of supported emoji in Slack from WebFX](https://www.webfx.com/tools/emoji-cheat-sheet/).
 
