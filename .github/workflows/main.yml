@@ -2,7 +2,7 @@ name: publish_and_notify
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, dev ]
 jobs:
   test_itself:
     name: Test Action-FTP-Deploy-Then-Slack-Notification
