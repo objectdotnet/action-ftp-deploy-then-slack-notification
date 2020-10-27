@@ -173,7 +173,7 @@ async function main() {
 
     if (!util.empty(error_details)) {
       // Check if all we need to do is init and retry
-      if (error_details.match(/fatal: Could not get last commit. Use 'git ftp init' for the initial push. The resource does not exist./) !== null) {
+      if (error_details.match(/fatal: Could not get last commit. (|Network down\? Wrong URL\? )Use 'git ftp init' for the initial push./) !== null) {
         console.log("- Error suggests non-initialized FTP structure. Attempting initialization...");
 
         let notice_success = await msger.notice("FTP host needs intialization. Trying to initialize it..");
